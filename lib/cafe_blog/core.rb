@@ -21,3 +21,4 @@ module CafeBlog
   end
 end
 
+require 'cafe_blog/core/environment'
