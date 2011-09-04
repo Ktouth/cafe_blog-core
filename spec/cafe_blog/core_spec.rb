@@ -5,7 +5,7 @@ describe 'CafeBlog::Core' do
     CafeBlog::Core.should be_instance_of(Module)
   end
 
-  describe 'CafeBlog::Core::VERSION' do
+  describe '::VERSION' do
     before :all do
       @path = File.expand_path(File.dirname(__FILE__) + '/../../VERSION')
     end
@@ -20,6 +20,26 @@ describe 'CafeBlog::Core' do
 
     it 'is match VERSION file' do
       CafeBlog::Core::VERSION.should == (File.open(@path) {|x| x.read })
+    end
+  end
+
+  describe '::Model' do
+    it 'is module' do
+      CafeBlog::Core::Model.should be_instance_of(Module)
+    end
+  end
+
+  describe '::ApplicationError' do
+    it 'is exception class' do
+      CafeBlog::Core::ApplicationError.should be_instance_of(Class)
+      CafeBlog::Core::ApplicationError.superclass.should == Exception
+    end
+  end
+
+  describe '::ModelOperationError' do
+    it 'is exception class' do
+      CafeBlog::Core::ModelOperationError.should be_instance_of(Class)
+      CafeBlog::Core::ModelOperationError.superclass.should == CafeBlog::Core::ApplicationError
     end
   end
 end
