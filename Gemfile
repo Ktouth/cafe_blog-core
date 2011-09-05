@@ -1,7 +1,7 @@
 source "http://rubygems.org"
 # Add dependencies required to use your gem here.
 # Example:
-#   gem "activesupport", ">= 2.3.5"
+#   gem "ramaze", ">= 2.3.5"
 gem "sequel", ">= 3.26.0"
 
 # Add dependencies to develop your gem here.
