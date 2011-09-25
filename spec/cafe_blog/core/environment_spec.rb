@@ -49,4 +49,18 @@ describe 'CafeBlog::Core::Environment' do
       lambda { CafeBlog::Core::Environment.setup(setup_parameter) }.should raise_error(CafeBlog::Core::ApplicationError)
     end
   end
+
+  describe '#database' do
+    before :all do
+      @database = Sequel.connect('sqlite:///')
+    end
+    before :each do
+      CafeBlog::Core::Environment.instance_eval { @instance = nil }
+      @env = CafeBlog::Core::Environment.setup(:database => @database)
+    end
+
+    it 'is instance of Sequel::Database' do
+      @env.database.should be_kind_of(Sequel::Database)
+    end
+  end  
 end

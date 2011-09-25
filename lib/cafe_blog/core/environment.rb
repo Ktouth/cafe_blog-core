@@ -25,7 +25,11 @@ module CafeBlog
 
       # @private
       def initialize(opts)
+        @database = opts[:database]
       end
+
+      # @return [Sequel::Database] モデルデータを保持するデータベースを返します
+      attr_reader :database
     end
   end
 end
