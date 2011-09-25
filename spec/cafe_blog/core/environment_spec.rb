@@ -49,6 +49,19 @@ describe 'CafeBlog::Core::Environment' do
       lambda { CafeBlog::Core::Environment.setup(setup_parameter) }.should raise_error(CafeBlog::Core::ApplicationError)
     end
   end
+  
+  describe '.check_instance' do
+    before :each do
+      CafeBlog::Core::Environment.instance_eval { @instance = nil }
+    end
+    it 'raise ApplicationError before setup' do
+      lambda { CafeBlog::Core::Environment.check_instance }.should raise_error(CafeBlog::Core::ApplicationError)
+    end
+    it 'is return instance after setup' do
+      ins = CafeBlog::Core::Environment.setup(setup_parameter)
+      CafeBlog::Core::Environment.check_instance.should == ins
+    end
+  end
 
   describe '#database' do
     before :all do

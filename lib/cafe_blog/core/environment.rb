@@ -21,6 +21,14 @@ module CafeBlog
         
         # @return [Environment] 現在の環境設定を返します
         attr_reader :instance
+
+        # 環境変数が既に設定されているかを判断した上で現在の環境設定を返します。
+        # @return [Environment] 現在の環境設定を返します
+        # @raise [CafeBlog::Core::ApplicationError] 環境変数の設定が終わっていません
+        def check_instance
+          raise ApplicationError, '環境変数の設定が終わっていません' unless instance
+          instance
+        end
       end
 
       # @private
