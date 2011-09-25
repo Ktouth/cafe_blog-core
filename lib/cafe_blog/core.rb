@@ -25,8 +25,7 @@ module CafeBlog
     # @raise [ModelOperationError] データベース自体、もしくは+table+に対応するテーブルが見つかりません
     def model(table)
       raise ArgumentError, '%s はテーブル名ではありません' % table.inspect unless table.is_a?(Symbol)
-      raise ModelOperationError, '環境変数の設定が終わっていません' unless Environment.instance
-      Sequel::Model(Environment.instance.database[table])
+      Sequel::Model(Environment.check_instance.database[table])
     end
     module_function :model
   end

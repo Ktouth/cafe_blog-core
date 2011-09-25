@@ -56,9 +56,9 @@ describe 'CafeBlog::Core' do
       lambda { CafeBlog::Core.model('sample') }.should raise_error(ArgumentError)
     end
 
-    it 'raise ModelOperationError when called before environment setup' do
+    it 'raise ApplicationError when called before environment setup' do
       CafeBlog::Core::Environment.instance.should be_nil
-      lambda { CafeBlog::Core.model(:windows) }.should raise_error(CafeBlog::Core::ModelOperationError)
+      lambda { CafeBlog::Core.model(:windows) }.should raise_error(CafeBlog::Core::ApplicationError)
     end
 
     it 'raise any exeption custom model class without no table' do
