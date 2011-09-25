@@ -42,4 +42,41 @@ describe 'CafeBlog::Core' do
       CafeBlog::Core::ModelOperationError.superclass.should == CafeBlog::Core::ApplicationError
     end
   end
+
+  describe '.model' do
+    before :each do
+      CafeBlog::Core::Environment.instance_eval { @instance = nil }
+    end
+
+    it 'raise ArgumentError when recieved without parameter' do
+      lambda { CafeBlog::Core.model }.should raise_error(ArgumentError)
+    end
+
+    it 'raise ArgumentError when recieved with not symbol' do
+      lambda { CafeBlog::Core.model('sample') }.should raise_error(ArgumentError)
+    end
+
+    it 'raise ModelOperationError when called before environment setup' do
+      CafeBlog::Core::Environment.instance.should be_nil
+      lambda { CafeBlog::Core.model(:windows) }.should raise_error(CafeBlog::Core::ModelOperationError)
+    end
+
+    it 'raise any exeption custom model class without no table' do
+      CafeBlog::Core::Environment.setup(:database => Sequel.connect('sqlite:///'))
+      CafeBlog::Core::Environment.instance.database.should_not be_table_exist(:bad_authors)
+      model = CafeBlog::Core.model(:bad_authors)
+    end
+
+    it 'return custom model class' do
+      db = Sequel.connect('sqlite:///')
+      db.create_table :authors do
+        primary_key :id
+        String :name, :unique => true, :null => false, :index => true
+      end
+      db.should be_table_exist(:authors)
+
+      CafeBlog::Core::Environment.setup(:database => db)
+      model = CafeBlog::Core.model(:authors)
+    end
+  end
 end

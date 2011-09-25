@@ -18,6 +18,17 @@ module CafeBlog
     class ApplicationError < Exception; end
     # データモデルの操作において何らかの失敗をした時に発生する例外クラスです。
     class ModelOperationError < ApplicationError; end
+
+    # +table*に対応した基底モデルクラスを定義します
+    # @param table [Symbol] モデルを定義したいテーブル名を指定します。
+    # @raise [ArgumentError] +table+にシンボルによるテーブル名を指定していません。
+    # @raise [ModelOperationError] データベース自体、もしくは+table+に対応するテーブルが見つかりません
+    def model(table)
+      raise ArgumentError, '%s はテーブル名ではありません' % table.inspect unless table.is_a?(Symbol)
+      raise ModelOperationError, '環境変数の設定が終わっていません' unless Environment.instance
+      Sequel::Model(Environment.instance.database[table])
+    end
+    module_function :model
   end
 end
 
