@@ -19,7 +19,7 @@ module CafeBlog
     # データモデルの操作において何らかの失敗をした時に発生する例外クラスです。
     class ModelOperationError < ApplicationError; end
 
-    # +table*に対応した基底モデルクラスを定義します
+    # +table+に対応した基底モデルクラスを定義します
     # @param table [Symbol] モデルを定義したいテーブル名を指定します。
     # @raise [ArgumentError] +table+にシンボルによるテーブル名を指定していません。
     # @raise [ModelOperationError] データベース自体、もしくは+table+に対応するテーブルが見つかりません
