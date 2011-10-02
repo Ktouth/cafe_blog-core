@@ -38,7 +38,7 @@ describe CafeBlog::Core do
 
   describe '.model' do
     before do
-      CafeBlog::Core::Environment.instance_eval { @instance = nil }
+      clear_environment
     end
 
     context 'recieved without parameter' do

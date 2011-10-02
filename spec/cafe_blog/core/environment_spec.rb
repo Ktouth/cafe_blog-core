@@ -8,7 +8,7 @@ describe 'CafeBlog::Core::Environment' do
     @database = Sequel.connect('sqlite:///')
   end
   before do
-    CafeBlog::Core::Environment.instance_variable_set(:@instance, nil)
+    clear_environment
   end
 
   shared_context 'after .setup' do
@@ -68,5 +68,5 @@ describe 'CafeBlog::Core::Environment' do
     include_context('after .setup')
     subject { CafeBlog::Core::Environment.instance.database }
     it { should be_kind_of(Sequel::Database) }
-  end  
+  end
 end
