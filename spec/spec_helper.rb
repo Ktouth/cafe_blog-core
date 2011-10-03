@@ -11,6 +11,7 @@ RSpec.configure do |config|
   
 end
 
+LibDirBase = File.expand_path('../../lib', __FILE__)
 def clear_environment
   CafeBlog::Core::Environment.instance_variable_set(:@instance, nil)
   mmod = CafeBlog::Core::Model

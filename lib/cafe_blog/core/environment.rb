@@ -29,6 +29,13 @@ module CafeBlog
           raise ApplicationError, '環境変数の設定が終わっていません' unless instance
           instance
         end
+
+        private
+  
+        # @private
+        def require_models
+          Dir.glob(File.expand_path('../model/*.{rb,so,o,dll}', __FILE__)) {|file| require 'cafe_blog/core/model/%s' % File.basename(file, '.*') } 
+        end
       end
 
       # @private

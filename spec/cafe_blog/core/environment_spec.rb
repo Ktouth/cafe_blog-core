@@ -69,4 +69,36 @@ describe 'CafeBlog::Core::Environment' do
     subject { CafeBlog::Core::Environment.instance.database }
     it { should be_kind_of(Sequel::Database) }
   end
+
+  describe '(.require_models)' do
+    before :all do
+      @model_dir = File.expand_path('cafe_blog/core/model', LibDirBase)
+      @requires = %w(author article tag comment file image impression)
+      @files = @requires.map {|x| "#{x}.rb" }
+      @requires.map! {|x| "cafe_blog/core/model/#{x}" }
+    end
+    include_context 'after .setup'
+    let(:parameter) { {:require => false} }
+
+    subject { CafeBlog::Core::Environment }
+    it { should_not respond_to(:require_models) }
+    it { should be_respond_to(:require_models, true) }
+
+    context 'method behavior check' do
+      before do
+        glob = Dir.should_receive(:glob).with("#{@model_dir}/*.{rb,so,o,dll}").once.ordered
+        @call_params = []
+        @files.zip(@requires).each do |f, r|
+          @call_params.push r
+          glob.and_yield(f)
+          CafeBlog::Core::Environment.should_receive(:require).with(r).once.ordered
+        end
+        
+        CafeBlog::Core::Environment.__send__(:require_models)
+      end
+
+      subject { @call_params }
+      it { should == @requires }
+    end
+  end
 end
