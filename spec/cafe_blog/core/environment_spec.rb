@@ -13,7 +13,14 @@ describe 'CafeBlog::Core::Environment' do
 
   shared_context 'after .setup' do
     let(:parameter) { {} }
-    before { @ins = CafeBlog::Core::Environment.setup( {:database => @database}.merge(parameter) ) }
+    let(:active_require_models) { false }
+    before do
+      @called_require_models = false
+      unless active_require_models
+        CafeBlog::Core::Environment.should_receive(:require_models).once.and_return { @called_require_models = true } # skip models require
+      end
+      @ins = CafeBlog::Core::Environment.setup( {:database => @database}.merge(parameter) )
+    end
   end
 
   subject { CafeBlog::Core::Environment }
@@ -38,6 +45,27 @@ describe 'CafeBlog::Core::Environment' do
       include_context('after .setup')
       subject { @ins }
       it { should be_instance_of(CafeBlog::Core::Environment) }
+    end
+    
+    context 'opt :require [boolean]' do
+      include_context('after .setup')
+      subject { @called_require_models }
+
+      context 'default is called' do
+        it { should be_true }
+      end
+      context 'called require_modles when :require is true' do
+        let(:parameter) { {:require => true} }
+        it { should be_true }
+      end
+      context 'not called require_modles when :require is false' do
+        let(:parameter) { {:require => false} }
+        let(:active_require_models) { true }
+        before do
+          CafeBlog::Core::Environment.should_not_receive(:require_models) # skip models require
+        end
+        it { should be_false }
+      end
     end
   end
 
@@ -79,6 +107,7 @@ describe 'CafeBlog::Core::Environment' do
     end
     include_context 'after .setup'
     let(:parameter) { {:require => false} }
+    let(:active_require_models) { true }
 
     subject { CafeBlog::Core::Environment }
     it { should_not respond_to(:require_models) }

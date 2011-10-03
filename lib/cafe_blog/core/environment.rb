@@ -10,6 +10,7 @@ module CafeBlog
 
         # 環境設定を行いモデルデータの利用を可能にする
         # @option opts [Sequel::Database] :database モデルデータの格納されるデータベースを指定します
+        # @option opts [boolean] :require モデルクラスの定義をロードするかどうかを指定します。デフォルトは+true+です
         # @return [CafeBlog::Core::Environment] 設定を行った環境情報を返します
         # @raise [ArgumentError] Hash以外のパラメータが与えられました
         def setup(opts)
@@ -17,6 +18,9 @@ module CafeBlog
           raise ArgumentError, 'データベースが指定されていません' unless opts[:database].is_a?(Sequel::Database)
           raise ApplicationError, '既に環境設定が行われています' if @instance
           @instance = new(opts)
+          require_models if opts.fetch(:require, true)
+
+          @instance
         end
         
         # @return [Environment] 現在の環境設定を返します
