@@ -36,21 +36,21 @@ describe CafeBlog::Core do
     it { should < CafeBlog::Core::ApplicationError }
   end
 
-  describe '.model' do
+  describe '.Model' do
     before do
       clear_environment
     end
 
     context 'recieved without parameter' do
-      it { expect { CafeBlog::Core.model }.to raise_error(ArgumentError) }
+      it { expect { CafeBlog::Core.Model }.to raise_error(ArgumentError) }
     end
 
     context 'recieved with not symbol' do
-      it { expect { CafeBlog::Core.model('sample') }.to raise_error(ArgumentError) }
+      it { expect { CafeBlog::Core.Model('sample') }.to raise_error(ArgumentError) }
     end
 
     context 'called before environment setup' do
-      it { expect { CafeBlog::Core.model(:windows) }.to raise_error(CafeBlog::Core::ApplicationError) }
+      it { expect { CafeBlog::Core.Model(:windows) }.to raise_error(CafeBlog::Core::ApplicationError) }
     end
 
     context 'without no database-table' do
@@ -62,7 +62,7 @@ describe CafeBlog::Core do
         it { should_not be_table_exist(:bad_authors) }
       end
 
-      it { expect { CafeBlog::Core.model(:bad_authors) }.to raise_error(CafeBlog::Core::ModelOperationError) }
+      it { expect { CafeBlog::Core.Model(:bad_authors) }.to raise_error(CafeBlog::Core::ModelOperationError) }
     end
 
     context 'return value' do
@@ -79,7 +79,7 @@ describe CafeBlog::Core do
         it { should be_table_exist(:authors) }
       end
 
-      subject { CafeBlog::Core.model(:authors) }
+      subject { CafeBlog::Core.Model(:authors) }
       it { should be_instance_of(Class) }
       it { should < Sequel::Model }
     end

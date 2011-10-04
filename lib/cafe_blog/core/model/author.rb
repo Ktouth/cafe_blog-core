@@ -3,7 +3,8 @@ require 'sequel/model'
 module CafeBlog
   module Core
     module Model
-      class Author < Core.model(:authors)
+      # 著者情報に対応するモデルクラス
+      class Author < Core::Model(:authors)
         
       end
     end

@@ -23,7 +23,7 @@ module CafeBlog
     # @param table [Symbol] モデルを定義したいテーブル名を指定します。
     # @raise [ArgumentError] +table+にシンボルによるテーブル名を指定していません。
     # @raise [ModelOperationError] データベース自体、もしくは+table+に対応するテーブルが見つかりません
-    def model(table)
+    def Model(table)
       raise ArgumentError, '%s はテーブル名ではありません' % table.inspect unless table.is_a?(Symbol)
       raise ModelOperationError, '%sに対応するテーブルが見つかりません' % table.inspect unless Environment.check_instance.database.table_exists?(table)
       
@@ -36,7 +36,7 @@ module CafeBlog
         Sequel::Model.db = db
       end
     end
-    module_function :model
+    module_function :Model
   end
 end
 
