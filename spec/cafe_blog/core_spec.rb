@@ -55,7 +55,7 @@ describe CafeBlog::Core do
 
     context 'without no database-table' do
       before do
-        CafeBlog::Core::Environment.setup(:database => Sequel.connect('sqlite:///'))        
+        CafeBlog::Core::Environment.setup(:database => Sequel.connect('sqlite:///'), :require => false)        
       end
       context '(dummy table)' do
         subject { CafeBlog::Core::Environment.instance.database }

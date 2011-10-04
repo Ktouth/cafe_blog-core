@@ -26,7 +26,15 @@ module CafeBlog
     def model(table)
       raise ArgumentError, '%s はテーブル名ではありません' % table.inspect unless table.is_a?(Symbol)
       raise ModelOperationError, '%sに対応するテーブルが見つかりません' % table.inspect unless Environment.check_instance.database.table_exists?(table)
-      Sequel::Model(Environment.check_instance.database[table])
+      
+      require 'sequel/model'
+      db = Sequel::Model.db
+      begin
+        Sequel::Model.db = Environment.check_instance.database 
+        Sequel::Model(table)
+      ensure
+        Sequel::Model.db = db
+      end
     end
     module_function :model
   end
