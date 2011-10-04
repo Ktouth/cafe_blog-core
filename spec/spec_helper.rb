@@ -23,16 +23,21 @@ end
 
 MigrationDirectory = File.expand_path('../../bin/migration', __FILE__)
 shared_context 'Environment.setup' do
+  let(:database_migration_params) { {} }
   before :all do
     clear_environment
 
     @database = Sequel.connect('sqlite:///')
     require 'sequel/extensions/migration'
-    Sequel::Migrator.run(@database, MigrationDirectory)
+    Sequel::Migrator.run(@database, MigrationDirectory, database_migration_params)
 
     @environment = CafeBlog::Core::Environment.setup(:database => @database)
   end
   after :all do
     @database.drop_tables(*@database.tables) rescue nil
   end
+end
+def database_demigrate(db, version = 0)
+  require 'sequel/extensions/migration'
+  Sequel::Migrator.run(db, MigrationDirectory, :target => version)
 end
