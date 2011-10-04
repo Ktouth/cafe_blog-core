@@ -31,7 +31,7 @@ module CafeBlog
       require 'sequel/model'
       db = Sequel::Model.db
       begin
-        Sequel::Model.db = Environment.check_instance.database 
+        Sequel::Model.db = Environment.check_instance.database
         Sequel::Model(table)
       ensure
         Sequel::Model.db = db
