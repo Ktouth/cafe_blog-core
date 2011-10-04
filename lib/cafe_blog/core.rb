@@ -12,7 +12,8 @@ module CafeBlog
     VERSION = ver_string
 
     # Model 名前空間: CafeBlog において永続的データと接続するデータモデルを実装する名前空間です。
-    module Model; end
+    module Model
+    end
   
     # アプリケーションで発生する例外の基底クラスです。
     class ApplicationError < Exception; end
