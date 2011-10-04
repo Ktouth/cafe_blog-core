@@ -20,3 +20,19 @@ def clear_environment
   end
   $LOADED_FEATURES.delete_if {|x| x =~ %r!cafe_blog/core/model/.*$! }
 end
+
+MigrationDirectory = File.expand_path('../../bin/migration', __FILE__)
+shared_context 'Environment.setup' do
+  before :all do
+    clear_environment
+
+    @database = Sequel.connect('sqlite:///')
+    require 'sequel/extensions/migration'
+    Sequel::Migrator.run(@database, MigrationDirectory)
+
+    @environment = CafeBlog::Core::Environment.setup(:database => @database)
+  end
+  after :all do
+    @database.drop_tables(*@database.tables) rescue nil
+  end
+end
