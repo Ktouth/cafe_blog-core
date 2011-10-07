@@ -27,14 +27,19 @@ describe 'CafeBlog::Core::Model::Author' do
   describe 'instance methods' do
     before do
       @author = CafeBlog::Core::Model::Author.new
+      @admin = CafeBlog::Core::Model::Author[:id => 1]
     end
+    specify '@admin is exist' do @admin.should_not be_nil end
     subject { @author }
 
     it { should respond_to(:id) }
 
-    context '#id(default)' do
+    context '#id' do
       subject { @author.id }
       it { should be_nil }
+      it { expect { @author.id = 15 }.to change { @author.id }.from(nil).to(15) }
+      it { expect { CafeBlog::Core::Model::Author.set(:id => nil) }.to raise_error }
+      it { expect { CafeBlog::Core::Model::Author.set(:id => @admin.id) }.to raise_error }
     end
   end
 end
