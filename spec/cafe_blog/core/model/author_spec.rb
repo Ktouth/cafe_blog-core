@@ -3,6 +3,11 @@ require File.expand_path(File.dirname(__FILE__) + '/../../../spec_helper')
 describe 'CafeBlog::Core::Model::Author' do
   include_context 'Environment.setup'
   def valid_args(args = {}); {:id => 201}.merge(args) end
+  shared_context 'authors reset' do
+    before :all do
+      database_resetdata(@database)
+    end
+  end
 
   subject { CafeBlog::Core::Model::Author }
   it { should be_instance_of(Class) }
@@ -36,9 +41,10 @@ describe 'CafeBlog::Core::Model::Author' do
     it { should respond_to(:id) }
 
     context '#id' do
+      include_context 'authors reset'
       subject { @author.id }
       it { should be_nil }
-      it { expect { @author.id = 15 }.to change { @author.id }.from(nil).to(15) }
+      it { expect { @author.id = 15; @author.save }.to change { [@author.id, @author.new?] }.from([nil, true]).to([15, false]) }
       it { expect { CafeBlog::Core::Model::Author.set(valid_args(:id => nil)) }.to raise_error }
       it { expect { CafeBlog::Core::Model::Author.set(valid_args(:id => @admin.id)) }.to raise_error }
     end
