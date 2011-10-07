@@ -30,6 +30,8 @@ shared_context 'Environment.setup' do
     @database = Sequel.connect('sqlite:///')
     require 'sequel/extensions/migration'
     Sequel::Migrator.run(@database, MigrationDirectory, database_migration_params)
+    
+    database_resetdata(@database)
 
     @environment = CafeBlog::Core::Environment.setup(:database => @database)
   end
@@ -41,3 +43,16 @@ def database_demigrate(db, version = 0)
   require 'sequel/extensions/migration'
   Sequel::Migrator.run(db, MigrationDirectory, :target => version)
 end
+def database_resetdata(db, *excepts)
+  db.transaction do
+    ExampleDBDataTables.each do |t_name|
+      next if excepts.include?(t_name)
+      db[t_name].delete
+      if ExampleDBSeqenceReset[t_name]
+        db[:sqlite_sequence].filter(:name => t_name.to_s).update(:seq => 0)
+      end
+      db[t_name].insert_multiple(ExampleDBData[t_name])
+    end
+  end
+end
+
