@@ -2,11 +2,23 @@ require File.expand_path(File.dirname(__FILE__) + '/../../../spec_helper')
 
 describe 'CafeBlog::Core::Model::Author' do
   include_context 'Environment.setup'
-  def valid_args(args = {}); {:id => 201}.merge(args) end
   shared_context 'authors reset' do
     before :all do
       database_resetdata(@database)
     end
+  end
+  def valid_args(args = {})
+    codes = @database[:authors].map {|r| r[:code] }
+    code = nil
+    unless args[:code]
+      i = 1
+      loop do
+        code = 'foobar_baz%02d' % i
+        break unless codes.include?(code)
+        i += 1
+      end
+    end
+    {:id => nil, :code => code }.merge(args)
   end
 
   subject { CafeBlog::Core::Model::Author }
@@ -39,14 +51,25 @@ describe 'CafeBlog::Core::Model::Author' do
     subject { @author }
 
     it { should respond_to(:id) }
+    it { should respond_to(:code) }
 
     context '#id' do
       include_context 'authors reset'
       subject { @author.id }
       it { should be_nil }
-      it { expect { @author.id = 15; @author.save }.to change { [@author.id, @author.new?] }.from([nil, true]).to([15, false]) }
+      it { expect { @author.id = 15; @author[:code] = valid_args[:code]; @author.save }.to change { [@author.id, @author.new?] }.from([nil, true]).to([15, false]) }
       it { expect { CafeBlog::Core::Model::Author.set(valid_args(:id => nil)) }.to raise_error }
-      it { expect { CafeBlog::Core::Model::Author.set(valid_args(:id => @admin.id)) }.to raise_error }
+      it { expect { @new = CafeBlog::Core::Model::Author.insert(valid_args(:id => nil)) }.to change { @new }.from(nil).to(16) }
+      it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:id => @admin.id)) }.to raise_error }
+    end
+
+    context '#code' do
+      include_context 'authors reset'
+      subject { @author.code }
+      it { should be_nil }
+      it { expect { @author.code = 'dummy_code'; @author.save }.to change { [@author.code, @author.new?] }.from([nil, true]).to(['dummy_code', false]) }
+      it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:code => nil)) }.to raise_error }
+      it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:code => @admin.code)) }.to raise_error }
     end
   end
 end
