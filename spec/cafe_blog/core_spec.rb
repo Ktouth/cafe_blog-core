@@ -68,18 +68,23 @@ describe CafeBlog::Core do
     context 'return value' do
       before do
         db = Sequel.connect('sqlite:///')
-        db.create_table :authors do
+        db.create_table! :example_authors do
           primary_key :id
           String :name, :unique => true, :null => false, :index => true
         end
-        CafeBlog::Core::Environment.setup(:database => db)
+
+        CafeBlog::Core::Environment.setup(:database => db, :require => false)
+      end
+      after :all do
+        db = CafeBlog::Core::Environment.instance.database
+        db.drop_table :example_authors rescue nil
       end
       context '(dummy table)' do
         subject { CafeBlog::Core::Environment.instance.database }
-        it { should be_table_exist(:authors) }
+        it { should be_table_exist(:example_authors) }
       end
 
-      subject { CafeBlog::Core.Model(:authors) }
+      subject { CafeBlog::Core.Model(:example_authors) }
       it { should be_instance_of(Class) }
       it { should < Sequel::Model }
     end
