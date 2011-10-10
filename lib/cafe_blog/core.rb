@@ -41,4 +41,7 @@ module CafeBlog
   end
 end
 
+require 'sequel_notnaughty'
+Sequel::Model.plugin :notnaughty
+
 require 'cafe_blog/core/environment'

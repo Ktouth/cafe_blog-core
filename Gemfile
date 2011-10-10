@@ -3,6 +3,8 @@ source "http://rubygems.org"
 # Example:
 #   gem "ramaze", ">= 2.3.5"
 gem "sequel", ">= 3.26.0"
+gem "not-naughty", ">= 0.6.2"
+gem "sequel_notnaughty", ">= 0.6.2"
 
 # Add dependencies to develop your gem here.
 # Include everything needed to run rake, tests, features, etc.
