@@ -21,7 +21,7 @@ def clear_environment
   $LOADED_FEATURES.delete_if {|x| x =~ %r!cafe_blog/core/model/.*$! }
 end
 
-MigrationDirectory = File.expand_path('../../bin/migration', __FILE__)
+MigrationDirectory = File.expand_path('../../resource/migration', __FILE__)
 shared_context 'Environment.setup' do
   let(:database_migration_params) { {} }
   before :all do

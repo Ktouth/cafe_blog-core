@@ -4,14 +4,14 @@
 # -*- encoding: utf-8 -*-
 
 Gem::Specification.new do |s|
-  s.name = %q{cafe_blog-core}
+  s.name = "cafe_blog-core"
   s.version = "0.1.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.authors = [%q{K.Ktouth}]
-  s.date = %q{2011-08-15}
-  s.description = %q{CafeBlogで使用するデータモデルおよび例外、モジュール、プラグインその他の動作の基底部分となる機能の実装を行うモジュール}
-  s.email = %q{ktouth@k-brand.gr.jp}
+  s.authors = ["K.Ktouth"]
+  s.date = "2011-10-11"
+  s.description = "CafeBlog\343\201\247\344\275\277\347\224\250\343\201\231\343\202\213\343\203\207\343\203\274\343\202\277\343\203\242\343\203\207\343\203\253\343\201\212\343\202\210\343\201\263\344\276\213\345\244\226\343\200\201\343\203\242\343\202\270\343\203\245\343\203\274\343\203\253\343\200\201\343\203\227\343\203\251\343\202\260\343\202\244\343\203\263\343\201\235\343\201\256\344\273\226\343\201\256\345\213\225\344\275\234\343\201\256\345\237\272\345\272\225\351\203\250\345\210\206\343\201\250\343\201\252\343\202\213\346\251\237\350\203\275\343\201\256\345\256\237\350\243\205\343\202\222\350\241\214\343\201\206\343\203\242\343\202\270\343\203\245\343\203\274\343\203\253"
+  s.email = "ktouth@k-brand.gr.jp"
   s.extra_rdoc_files = [
     "LICENSE.txt",
     "README.rdoc"
@@ -20,42 +20,64 @@ Gem::Specification.new do |s|
     ".document",
     ".rspec",
     "Gemfile",
+    "Gemfile.lock",
     "LICENSE.txt",
     "README.rdoc",
     "Rakefile",
     "VERSION",
+    "cafe_blog-core.gemspec",
     "lib/cafe_blog-core.rb",
-    "spec/cafe_blog-core_spec.rb",
-    "spec/spec_helper.rb"
+    "lib/cafe_blog/core.rb",
+    "lib/cafe_blog/core/environment.rb",
+    "lib/cafe_blog/core/model/author.rb",
+    "resource/migration/001_create_authors.rb",
+    "spec/cafe_blog/core/environment_spec.rb",
+    "spec/cafe_blog/core/model/author_spec.rb",
+    "spec/cafe_blog/core_spec.rb",
+    "spec/cafe_blog_spec.rb",
+    "spec/spec_helper.rb",
+    "spec/support/example_db.rb"
   ]
-  s.homepage = %q{http://github.com/Ktouth/cafe_blog-core}
-  s.licenses = [%q{MIT}]
-  s.require_paths = [%q{lib}]
-  s.rubygems_version = %q{1.8.8}
-  s.summary = %q{CafeBlogのモデル層および基底機能の実装}
+  s.homepage = "http://github.com/Ktouth/cafe_blog-core"
+  s.licenses = ["MIT"]
+  s.require_paths = ["lib"]
+  s.rubygems_version = "1.8.10"
+  s.summary = "CafeBlog\343\201\256\343\203\242\343\203\207\343\203\253\345\261\244\343\201\212\343\202\210\343\201\263\345\237\272\345\272\225\346\251\237\350\203\275\343\201\256\345\256\237\350\243\205"
 
   if s.respond_to? :specification_version then
     s.specification_version = 3
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
-      s.add_development_dependency(%q<rspec>, ["~> 2.3.0"])
+      s.add_runtime_dependency(%q<sequel>, [">= 3.26.0"])
+      s.add_runtime_dependency(%q<not-naughty>, [">= 0.6.2"])
+      s.add_runtime_dependency(%q<sequel_notnaughty>, [">= 0.6.2"])
+      s.add_development_dependency(%q<rspec>, ["~> 2.6.0"])
+      s.add_development_dependency(%q<yard>, [">= 0.6.0"])
       s.add_development_dependency(%q<bundler>, ["~> 1.0.0"])
       s.add_development_dependency(%q<jeweler>, ["~> 1.6.4"])
       s.add_development_dependency(%q<rcov>, [">= 0"])
-      s.add_development_dependency(%q<rdoc>, [">= 2.4.2"])
+      s.add_development_dependency(%q<sqlite3>, [">= 0"])
     else
-      s.add_dependency(%q<rspec>, ["~> 2.3.0"])
+      s.add_dependency(%q<sequel>, [">= 3.26.0"])
+      s.add_dependency(%q<not-naughty>, [">= 0.6.2"])
+      s.add_dependency(%q<sequel_notnaughty>, [">= 0.6.2"])
+      s.add_dependency(%q<rspec>, ["~> 2.6.0"])
+      s.add_dependency(%q<yard>, [">= 0.6.0"])
       s.add_dependency(%q<bundler>, ["~> 1.0.0"])
       s.add_dependency(%q<jeweler>, ["~> 1.6.4"])
       s.add_dependency(%q<rcov>, [">= 0"])
-      s.add_dependency(%q<rdoc>, [">= 2.4.2"])
+      s.add_dependency(%q<sqlite3>, [">= 0"])
     end
   else
-    s.add_dependency(%q<rspec>, ["~> 2.3.0"])
+    s.add_dependency(%q<sequel>, [">= 3.26.0"])
+    s.add_dependency(%q<not-naughty>, [">= 0.6.2"])
+    s.add_dependency(%q<sequel_notnaughty>, [">= 0.6.2"])
+    s.add_dependency(%q<rspec>, ["~> 2.6.0"])
+    s.add_dependency(%q<yard>, [">= 0.6.0"])
     s.add_dependency(%q<bundler>, ["~> 1.0.0"])
     s.add_dependency(%q<jeweler>, ["~> 1.6.4"])
     s.add_dependency(%q<rcov>, [">= 0"])
-    s.add_dependency(%q<rdoc>, [">= 2.4.2"])
+    s.add_dependency(%q<sqlite3>, [">= 0"])
   end
 end
 

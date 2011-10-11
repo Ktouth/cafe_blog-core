@@ -21,6 +21,10 @@ Jeweler::Tasks.new do |gem|
   gem.description = %Q{CafeBlogで使用するデータモデルおよび例外、モジュール、プラグインその他の動作の基底部分となる機能の実装を行うモジュール}
   gem.email = "ktouth@k-brand.gr.jp"
   gem.authors = ["K.Ktouth"]
+
+  gem.executable = []
+  gem.files += Dir.glob('resource/**/*')
+
   # dependencies defined in Gemfile
 end
 Jeweler::RubygemsDotOrgTasks.new
