@@ -68,6 +68,7 @@ describe 'CafeBlog::Core::Model::Author' do
     it { should respond_to(:id) }
     it { should respond_to(:code) }
     it { should respond_to(:name) }
+    it { should respond_to(:mailto) }
 
     context '#id' do
       include_context 'authors reset'
@@ -122,6 +123,25 @@ describe 'CafeBlog::Core::Model::Author' do
       it { expect { @author.name = ''; @author.save }.to raise_error }
       it { expect { @author.name = 'ab'; @author.save }.to raise_error }
       it { expect { @author.name = '短い'; @author.save }.to raise_error }
+    end
+
+    context '#mailto' do
+      include_context 'authors reset'
+      before { args_set(:mailto) }
+      subject { @author.mailto }
+
+      it { should be_nil }
+      it { expect { @author.mailto = nil; @author.save }.to change { [@author.mailto, @author.new?] }.from([nil, true]).to([nil, false]) }
+      it { expect { @author.mailto = 'valid@mailto.net'; @author.save }.to change { [@author.mailto, @author.new?] }.from([nil, true]).to(['valid@mailto.net', false]) }
+      it { expect { @author.mailto = 'argument.set_ok@ore.ex-sample.net'; @author.save }.to change { [@author.mailto, @author.new?] }.from([nil, true]).to(['argument.set_ok@ore.ex-sample.net', false]) }
+      it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:mailto => nil)) }.to_not raise_error }
+      it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:mailto => 'migration@sequel.class.org')) }.to_not raise_error }
+      it { expect { @author.mailto = ''; @author.save }.to raise_error }
+      it { expect { @author.mailto = 'ab'; @author.save }.to raise_error }
+      it { expect { @author.mailto = '短い'; @author.save }.to raise_error }
+      it { expect { @author.mailto = '111111@5464623'; @author.save }.to raise_error }
+      it { expect { @author.mailto = '日本語.org'; @author.save }.to raise_error }
+      it { expect { @author.mailto = 'e-mail@日本語.org'; @author.save }.to raise_error }
     end
   end
 end
