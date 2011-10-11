@@ -3,6 +3,7 @@ Sequel.migration do
     create_table(:authors) do
       primary_key :id
       String :code, :unique => true, :null => false
+      String :name, :unique => true, :null => false
     end
   end
   down do
