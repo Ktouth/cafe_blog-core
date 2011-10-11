@@ -89,13 +89,13 @@ describe 'CafeBlog::Core::Model::Author' do
       it { should be_nil }
       it { expect { @author.code = 'dummy_code'; @author.save }.to change { [@author.code, @author.new?] }.from([nil, true]).to(['dummy_code', false]) }
       it { expect { @author.code = 'foobar128123'; @author.save }.to change { [@author.code, @author.new?] }.from([nil, true]).to(['foobar128123', false]) }
+      it { expect { @author.code = 'asadfdefg'; @author.save }.to change { [@author.code, @author.new?] }.from([nil, true]).to(['asadfdefg', false]) }
       it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:code => nil)) }.to raise_error }
       it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:code => @admin.code)) }.to raise_error }
       it { expect { @author.code = ''; @author.save }.to raise_error }
       it { expect { @author.code = '123564896123'; @author.save }.to raise_error }
       it { expect { @author.code = 'ab'; @author.save }.to raise_error }
       it { expect { @author.code = 'asadf456asdfa456adf7a89adsf123'; @author.save }.to raise_error }
-      it { expect { @author.code = 'asadfdefg'; @author.save }.to raise_error }
       it { expect { @author.code = '123456789'; @author.save }.to raise_error }
       it { expect { @author.code = '日本語'; @author.save }.to raise_error }
       it { expect { @author.code = 'BADtest123'; @author.save }.to raise_error }

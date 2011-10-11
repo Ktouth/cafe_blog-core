@@ -10,7 +10,7 @@ module CafeBlog
       # @attr [String] name 筆者名。一意的な三文字以上のもののみを受け付ける
       class Author < Core::Model(:authors)
         validates(:code) { presence and uniqueness and length :minimum => 3, :maximum => 16 }
-        validates(:code) { format :with => /^(?![_\d]|[a-z]+$)[a-z\d_]+$/ }
+        validates(:code) { format :with => /^(?![_\d])[a-z\d_]+$/ }
         validates(:name) { presence and uniqueness and length :minimum => 3 }
         validates(:name) { format :with => /^.{3,}$/u }
       end
