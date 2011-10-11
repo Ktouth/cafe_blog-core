@@ -140,6 +140,47 @@ describe 'CafeBlog::Core::Environment' do
     it { should_not respond_to(:salt_seed=) }
   end
 
+  describe '#generate_salt' do
+    include_context('after .setup')
+    let(:parameter) { {:salt_seed => 'this is password-salt base string.'} }
+    subject { @ins }
+    it { should respond_to(:generate_salt) }
+    it { expect { @ins.generate_salt }.to_not raise_error }
+    it { expect { @ins.generate_salt(:base) }.to raise_error(ArgumentError) }
+    it { expect { @ins.generate_salt('sample') }.to raise_error(ArgumentError) }
+
+    context 'valid return' do
+      subject { @ins.generate_salt }
+      it { should be_a(String) }
+      it { should match(/^[\da-f]{40}/) }
+    end
+    context 'match' do
+      before do
+        @ins.should_receive(:rand).with(65521).and_return { 53014 }
+        tm = Time.parse('Tue Oct 11 21:32:16 +0900 2011'); Time.should_receive(:now).and_return { tm }
+        Process.should_receive(:pid).and_return { 12244 }
+        ENV.should_receive(:[]).with('REMOTE_HOST').and_return { 'ip221-45-153-96.foobar.example.com' }
+      end
+      subject { @ins.generate_salt }
+      it { should == "daf7c9719f5426f4eaf588d4d980a5a57d5c20ee" }
+    end
+    context 'match' do
+      before do
+        @ins.should_receive(:rand).with(65521).and_return { 53014 }
+        tm, tm2 = Time.parse('Tue Oct 11 21:32:16 +0900 2011'), Time.parse('Tue Oct 11 21:53:23 +0900 2011')
+        Time.should_receive(:now).and_return { tm }
+        Process.should_receive(:pid).and_return { 12244 }
+        ENV.should_receive(:[]).with('REMOTE_HOST').and_return { 'ip221-45-153-96.foobar.example.com' }
+        @ins.should_receive(:rand).with(65521).and_return { 1445 }
+        Time.should_receive(:now).and_return { tm2 }
+        Process.should_receive(:pid).and_return { 12244 }
+        ENV.should_receive(:[]).with('REMOTE_HOST').and_return { 'ip221-45-153-96.foobar.example.com' }
+      end
+      subject { @ins.generate_salt }
+      it { should_not == @ins.generate_salt }
+    end
+  end
+
   describe '(.require_models)' do
     before :all do
       @model_dir = File.expand_path('cafe_blog/core/model', LibDirBase)
