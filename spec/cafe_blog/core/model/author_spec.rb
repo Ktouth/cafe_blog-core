@@ -75,7 +75,7 @@ describe 'CafeBlog::Core::Model::Author' do
       subject { @author.id }
 
       it { should be_nil }
-      it { expect { @author.id = 15; @author[:code] = valid_args[:code]; @author.save }.to change { [@author.id, @author.new?] }.from([nil, true]).to([15, false]) }
+      it { expect { @author.id = 15; @author.save }.to change { [@author.id, @author.new?] }.from([nil, true]).to([15, false]) }
       it { expect { CafeBlog::Core::Model::Author.set(valid_args(:id => nil)) }.to raise_error }
       it { expect { @new = CafeBlog::Core::Model::Author.insert(valid_args(:id => nil)) }.to change { @new }.from(nil).to(16) }
       it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:id => @admin.id)) }.to raise_error }
