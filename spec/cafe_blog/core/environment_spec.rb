@@ -67,6 +67,41 @@ describe 'CafeBlog::Core::Environment' do
         it { should be_false }
       end
     end
+    
+    context 'opt :salt_seed [string]' do
+      def _check_(seed); _valid_setup_(:salt_seed => seed, :require => false) end
+      
+      context 'default value' do
+        include_context('after .setup')
+        subject { @ins.salt_seed }
+        it { should be_a(String) }
+        it { should == CafeBlog::Core::Environment::DefaultSaltSeed }
+      end
+
+      context 'valid operation' do
+        include_context('after .setup')
+        let(:parameter) { {:salt_seed => 'valid salt seed value'} }
+        subject { @ins.salt_seed }
+        it { should == parameter[:salt_seed] }
+      end
+      
+      context 'valid value' do
+        it { expect { _check_('this is valid string.') }.to_not raise_error }
+        it { expect { _check_('日本語ももちろん通ります') }.to_not raise_error }
+        it { expect { _check_('this is valid long-long-long-long-string.') }.to_not raise_error }
+        it { expect { _check_('あくまでも種でしかないのでどんなに長い日本語ももちろん通ります。ええ、もう全く問題なし') }.to_not raise_error }
+      end
+      
+      context 'invalid value' do
+        it { expect { _check_(:salt_ed => nil) }.to raise_error(ArgumentError) }
+        it { expect { _check_('') }.to raise_error(ArgumentError) }
+        it { expect { _check_('short.1') }.to raise_error(ArgumentError) }
+        it { expect { _check_(Class) }.to raise_error(ArgumentError) }
+        it { expect { _check_(:symbol) }.to raise_error(ArgumentError) }
+        it { expect { _check_(195123125) }.to raise_error(ArgumentError) }
+        it { expect { _check_(Time.now) }.to raise_error(ArgumentError) }
+      end
+    end
   end
 
   describe '.instance' do
@@ -96,6 +131,13 @@ describe 'CafeBlog::Core::Environment' do
     include_context('after .setup')
     subject { CafeBlog::Core::Environment.instance.database }
     it { should be_kind_of(Sequel::Database) }
+  end
+
+  describe '#salt_seed' do
+    include_context('after .setup')
+    subject { @ins }
+    it { should respond_to(:salt_seed) }
+    it { should_not respond_to(:salt_seed=) }
   end
 
   describe '(.require_models)' do
