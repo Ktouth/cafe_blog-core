@@ -27,7 +27,7 @@ shared_context 'Environment.setup' do
   before :all do
     clear_environment
 
-    @database = Sequel.connect('sqlite:///')
+    @database = Sequel.connect('amalgalite:///')
     require 'sequel/extensions/migration'
     Sequel::Migrator.run(@database, MigrationDirectory, database_migration_params)
     

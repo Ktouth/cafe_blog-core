@@ -55,7 +55,7 @@ describe CafeBlog::Core do
 
     context 'without no database-table' do
       before do
-        CafeBlog::Core::Environment.setup(:database => Sequel.connect('sqlite:///'), :require => false)        
+        CafeBlog::Core::Environment.setup(:database => Sequel.connect('amalgalite:///'), :require => false)        
       end
       context '(dummy table)' do
         subject { CafeBlog::Core::Environment.instance.database }
@@ -67,7 +67,7 @@ describe CafeBlog::Core do
 
     context 'return value' do
       before do
-        db = Sequel.connect('sqlite:///')
+        db = Sequel.connect('amalgalite:///')
         db.create_table! :example_authors do
           primary_key :id
           String :name, :unique => true, :null => false, :index => true

@@ -5,7 +5,7 @@ describe 'CafeBlog::Core::Environment' do
   def _valid_setup_(params = {}); _setup_( {:database => @database}.merge(params) ) end
 
   before :all do
-    @database = Sequel.connect('sqlite:///')
+    @database = Sequel.connect('amalgalite:///')
   end
   before do
     clear_environment
