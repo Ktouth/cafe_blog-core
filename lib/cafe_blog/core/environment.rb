@@ -52,17 +52,18 @@ module CafeBlog
         end
       end
 
-      # @private
-      def initialize(opts)
-        @database = opts[:database]
-        @salt_seed = opts[:salt_seed]
-      end
-
       # @return [Sequel::Database] モデルデータを保持するデータベースを返します
       attr_reader :database
 
       # @return [String] パスワードを暗号化する際、saltの生成ベースとして使用する文字列を返します
       attr_reader :salt_seed
+
+      private
+
+      def initialize(opts)
+        @database = opts[:database]
+        @salt_seed = opts[:salt_seed]
+      end
     end
   end
 end
