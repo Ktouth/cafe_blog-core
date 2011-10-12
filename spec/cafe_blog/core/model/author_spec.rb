@@ -69,6 +69,10 @@ describe 'CafeBlog::Core::Model::Author' do
     it { should respond_to(:code) }
     it { should respond_to(:name) }
     it { should respond_to(:mailto) }
+    it { should respond_to(:crypted_password) }
+    it { should_not be_respond_to(:crypted_password=) }
+    it { should respond_to(:password_salt) }
+    it { should_not be_respond_to(:password_salt=) }
 
     context '#id' do
       include_context 'authors reset'
@@ -145,6 +149,48 @@ describe 'CafeBlog::Core::Model::Author' do
       it { expect { @author.mailto = '日本語.org'; @author.save }.to raise_error }
       it { expect { @author.mailto = 'e-mail@日本語.org'; @author.save }.to raise_error }
     end
+
+    context '#crypted_password' do
+      include_context 'authors reset'
+      before { args_set(); @pass = create_sample_password('example', 'windows_linux_macosx', @salt = create_sample_salt) }
+      subject { @author.crypted_password }
+
+      it { should be_nil }
+      it { expect { @author[:crypted_password] = nil; @author.save }.to change { [@author.crypted_password, @author.new?] }.from([nil, true]).to([nil, false]) }
+      it { expect { @author[:crypted_password] = @pass; @author.save }.to change { [@author.crypted_password, @author.new?] }.from([nil, true]).to([@pass, false]) }
+      it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:crypted_password => nil)) }.to_not raise_error }
+      it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:crypted_password => @pass)) }.to_not raise_error }
+      it { expect { @author[:crypted_password] = ''; @author.save }.to raise_error }
+      it { expect { @author[:crypted_password] = 'ab'; @author.save }.to raise_error }
+      it { expect { @author[:crypted_password] = '短い'; @author.save }.to raise_error }
+      it { expect { @author[:crypted_password] = @pass[0..-2]; @author.save }.to raise_error }
+      it { expect { @author[:crypted_password] = @pass + 'a'; @author.save }.to raise_error }
+      it { expect { @author[:crypted_password] = @pass.upcase; @author.save }.to raise_error }
+      it { expect { @author[:crypted_password] = @pass[0..-2]; @author.save }.to raise_error }
+      it { expect { @author[:crypted_password] = @pass + 'a'; @author.save }.to raise_error }
+      it { expect { @author[:crypted_password] = '!' + @pass[1..-1]; @author.save }.to raise_error }
+    end
+
+    context '#password_salt' do
+      include_context 'authors reset'
+      before { args_set(); @pass = create_sample_password('foobarbaz', 'windows_linux_macosx', @salt = create_sample_salt) }
+      subject { @author.password_salt }
+
+      it { should be_nil }
+      it { expect { @author[:password_salt] = nil; @author.save }.to change { [@author.password_salt, @author.new?] }.from([nil, true]).to([nil, false]) }
+      it { expect { @author[:password_salt] = @salt; @author.save }.to change { [@author.password_salt, @author.new?] }.from([nil, true]).to([@salt, false]) }
+      it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:password_salt => nil)) }.to_not raise_error }
+      it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:password_salt => @salt)) }.to_not raise_error }
+      it { expect { @author[:password_salt] = ''; @author.save }.to raise_error }
+      it { expect { @author[:password_salt] = 'ab'; @author.save }.to raise_error }
+      it { expect { @author[:password_salt] = '短い'; @author.save }.to raise_error }
+      it { expect { @author[:password_salt] = @salt[0..-2]; @author.save }.to raise_error }
+      it { expect { @author[:password_salt] = @salt + 'a'; @author.save }.to raise_error }
+      it { expect { @author[:password_salt] = @salt.upcase; @author.save }.to raise_error }
+      it { expect { @author[:password_salt] = @salt[0..-2]; @author.save }.to raise_error }
+      it { expect { @author[:password_salt] = @salt + 'a'; @author.save }.to raise_error }
+      it { expect { @author[:password_salt] = '!' + @salt[1..-1]; @author.save }.to raise_error }
+    end
   end
 end
 
@@ -152,11 +198,13 @@ describe 'migration: 001_create_authors' do
   let(:database_migration_params) { {:target => 1} }
   context 'migration.up' do
     include_context 'Environment.setup'
+    let(:require_models) { false }
     specify 'version is 1' do @database[:schema_info].first[:version].should == 1 end
     specify 'created authors' do @database.tables.should be_include(:authors) end
   end
   context 'migration.down' do
     include_context 'Environment.setup'
+    let(:require_models) { false }
     before :all do database_demigrate(@database, 0) end
 
     specify 'dropped authors' do @database.tables.should_not be_include(:authors) end

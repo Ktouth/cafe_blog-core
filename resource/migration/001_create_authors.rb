@@ -5,6 +5,8 @@ Sequel.migration do
       String :code, :unique => true, :null => false
       String :name, :unique => true, :null => false
       String :mailto
+      String :crypted_password, :size => 40
+      String :password_salt, :size => 40
     end
   end
   down do
