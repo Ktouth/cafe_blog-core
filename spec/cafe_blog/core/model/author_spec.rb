@@ -80,6 +80,7 @@ describe 'CafeBlog::Core::Model::Author' do
       it { expect { CafeBlog::Core::Model::Author.set(valid_args(:id => nil)) }.to raise_error }
       it { expect { @new = CafeBlog::Core::Model::Author.insert(valid_args(:id => nil)) }.to change { @new }.from(nil).to(16) }
       it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:id => @admin.id)) }.to raise_error }
+      it { expect { @admin.id = 5932 }.to raise_error }
     end
 
     context '#code' do
@@ -101,6 +102,7 @@ describe 'CafeBlog::Core::Model::Author' do
       it { expect { @author.code = '日本語'; @author.save }.to raise_error }
       it { expect { @author.code = 'BADtest123'; @author.save }.to raise_error }
       it { expect { @author.code = '__test__'; @author.save }.to raise_error }
+      it { expect { @admin.code = 'alter_admin' }.to raise_error }
     end
 
     context '#name' do
