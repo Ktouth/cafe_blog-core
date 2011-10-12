@@ -24,6 +24,7 @@ end
 MigrationDirectory = File.expand_path('../../resource/migration', __FILE__)
 shared_context 'Environment.setup' do
   let(:database_migration_params) { {} }
+  let(:require_models) { true }
   before :all do
     clear_environment
 
@@ -33,7 +34,7 @@ shared_context 'Environment.setup' do
     
     database_resetdata(@database)
 
-    @environment = CafeBlog::Core::Environment.setup(:database => @database)
+    @environment = CafeBlog::Core::Environment.setup(:database => @database, :require => require_models)
   end
   after :all do
     @database.drop_tables(*@database.tables) rescue nil
@@ -55,4 +56,3 @@ def database_resetdata(db, *excepts)
     end
   end
 end
-
