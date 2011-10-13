@@ -52,6 +52,39 @@ describe 'CafeBlog::Core::Model::Author' do
     it { should_not include(:id=) }
   end
 
+  context '.authentication' do
+    before :all do
+      @model = CafeBlog::Core::Model::Author
+      @admin = @model[1]
+      @password = ExampleDBAuthorsPassword[@admin.code][:password]
+      @user = @model.filter(:code => 'example').first
+      @user_password = ExampleDBAuthorsPassword[@user.code][:password]
+    end
+    before { @result = nil }
+    it { should respond_to(:authentication) }
+    it { expect { @model.authentication }.to raise_error(ArgumentError) }
+    it { expect { @model.authentication('test') }.to raise_error(ArgumentError) }
+    it { expect { @model.authentication('windows', 'linux', 'max_osx') }.to raise_error(ArgumentError) }
+    it { expect { @model.authentication(@admin.code, @password) }.to_not raise_error }
+    it { expect { @model.authentication('no-code', 'invalid password') }.to_not raise_error }
+    it { expect { @model.authentication(:bad_type, /invalid password/) }.to_not raise_error }
+    it { expect { @result = @model.authentication(@admin.code, @password) }.to change { @result ? @result.code : nil }.from(nil).to(@admin.code) }
+    it { expect { @result = @model.authentication(@user.code, @user_password) }.to change { @result ? @result.code : nil }.from(nil).to(@user.code) }
+    it { expect { @result = @model.authentication(@admin.code, @user_password) }.to_not change { @result ? @result.code : nil }.from(nil).to(@admin.code) }
+    it { expect { @result = @model.authentication(@admin.code, '') }.to_not change { @result ? @result.code : nil }.from(nil).to(@admin.code) }
+    it { expect { @result = @model.authentication(@admin.code, @password.upcase) }.to_not change { @result ? @result.code : nil }.from(nil).to(@admin.code) }
+    it { expect { @result = @model.authentication(/invalid/, @user_password) }.to_not change { @result ? @result.code : nil }.from(nil).to(@user.code) }
+    it { expect { @result = @model.authentication(CafeBlog::Core::Model::Author[2].code, @user_password) }.to_not change { @result ? @result.code : nil }.from(nil).to(@user.code) }
+    context 'crypt operetion check' do
+      before do
+        key = '%s:%s:%s' % [@admin.code, @password, @admin.password_salt]
+        crypted = create_sample_password(@admin.code, @password, @admin.password_salt)
+        Digest::SHA1.should_receive(:hexdigest).with(key).once.and_return { crypted }
+      end
+      it { expect { @result = @model.authentication(@admin.code, @password) }.to change { @result ? @result.code : nil }.from(nil).to(@admin.code) }
+    end
+  end
+
   describe 'instance methods' do
     before do
       @author = CafeBlog::Core::Model::Author.new
