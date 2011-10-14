@@ -51,6 +51,12 @@ describe 'CafeBlog::Core::Model::Author' do
     subject { CafeBlog::Core::Model::Author.setter_methods }
     it { should_not include(:id=) }
   end
+  
+  context '.columns' do
+    subject { CafeBlog::Core::Model::Author.columns }
+    it { should_not include(:password) }
+    it { should_not include(:password_confirmation) }
+  end
 
   context '.authentication' do
     before :all do
@@ -106,6 +112,8 @@ describe 'CafeBlog::Core::Model::Author' do
     it { should_not be_respond_to(:crypted_password=) }
     it { should respond_to(:password_salt) }
     it { should_not be_respond_to(:password_salt=) }
+    it { should respond_to(:password) }
+    it { should respond_to(:password_confirmation) }
 
     context '#id' do
       include_context 'authors reset'
@@ -223,6 +231,136 @@ describe 'CafeBlog::Core::Model::Author' do
       it { expect { @author[:password_salt] = @salt[0..-2]; @author.save }.to raise_error }
       it { expect { @author[:password_salt] = @salt + 'a'; @author.save }.to raise_error }
       it { expect { @author[:password_salt] = '!' + @salt[1..-1]; @author.save }.to raise_error }
+    end
+
+    def set_password(author, pass, confirm)
+      author.password = pass
+      author.password_confirmation = confirm
+    end
+
+    context '#password' do
+      include_context 'authors reset'
+      before { args_set(); @pass = 'examPLE18523Afafd' }
+      subject { @author.password }
+      
+      it { should be_nil }
+      it { should == @author.password_confirmation }
+      context do
+        subject { @admin.password }
+        it { should be_nil }
+        it { should == @admin.password_confirmation }
+      end
+        
+      it { expect { set_password(@author, nil, nil); @author.save }.to_not change { subject } }
+      it { expect { set_password(@author, @pass, @pass); @author.save }.to_not change { subject } }
+      it { expect { m = ''; set_pasword(@author, m, m); @author.save }.to raise_error }
+      it { expect { m = '123adfd'; set_pasword(@author, m, m); @author.save }.to raise_error }
+      it { expect { m = 'oRs12x' * 8; set_pasword(@author, m, m); @author.save }.to raise_error }
+      it { expect { m = 'oRs日本語は通らない12x'; set_pasword(@author, m, m); @author.save }.to raise_error }
+      it { expect { m = 115312; set_pasword(@author, m, m); @author.save }.to raise_error }
+      it { expect { m = /regexp/; set_pasword(@author, m, m); @author.save }.to raise_error }
+      it { expect { m = 'aaaaaaaabbbbbbbb'; set_pasword(@author, m, m); @author.save }.to raise_error }
+      it { expect { m = '1234567890'; set_pasword(@author, m, m); @author.save }.to raise_error }
+      it { expect { m = 'FASDFASD'; set_pasword(@author, m, m); @author.save }.to raise_error }
+    end
+    context '#password_confirmation' do
+      include_context 'authors reset'
+      before { args_set(); @pass = 'examPLE18523Afafd' }
+      subject { @author.password_confirmation }
+      
+      it { should be_nil }
+      it { should == @author.password }
+      context do
+        subject { @admin.password_confirmation }
+        it { should be_nil }
+        it { should == @admin.password }
+      end
+        
+      it { expect { set_password(@author, nil, nil); @author.save }.to_not change { subject } }
+      it { expect { set_password(@author, @pass, @pass); @author.save }.to_not change { subject } }
+    end
+    
+    describe 'operation: password change' do
+      include_context 'authors reset'
+      shared_context('set digest mock') do
+        let(:new_password) { 'invalidPassword' }
+        before do
+          @salt = create_sample_salt
+          _key = [subject.code, new_password, @salt].join(':')
+          @crypted = _crypted = Digest::SHA1.hexdigest(_key)
+          CafeBlog::Core::Environment.instance.should_receive(:generate_salt).ordered.and_return { @salt }
+          Digest::SHA1.should_receive(:hexdigest).with(_key).ordered.and_return { @crypted }
+        end
+      end
+      shared_context('set no digest mock') do
+        before do
+          CafeBlog::Core::Environment.instance.should_not_receive(:generate_salt).with(no_args)
+          Digest::SHA1.should_not_receive(:hexdigest).with(String)
+        end
+      end
+      before do
+        @pass = 'thisISpass123789Ok'
+      end
+
+      context 'new item' do
+        before { args_set() }
+        subject { @author }
+        it { expect { set_password(subject, @pass, @pass); subject.save }.to_not raise_error }
+        it { expect { set_password(subject, @pass, @pass); subject.save }.to_not change { subject.password } }
+        it { expect { set_password(subject, @pass, @pass); subject.save }.to_not change { subject.password_confirmation } }
+        context 'changed password' do
+          include_context 'set digest mock'
+          let(:new_password) { @pass }
+          it { expect { set_password(subject, @pass, @pass); subject.save }.to change { subject.crypted_password }.to(@crypted) }
+          it { expect { set_password(subject, @pass, @pass); subject.save }.to change { subject.password_salt }.to(@salt) }
+        end
+        context 'no changed password' do
+          include_context 'set no digest mock'
+          it { expect { set_password(subject, nil, nil); subject.save }.to_not raise_error }
+          it { expect { set_password(subject, nil, nil); subject.save }.to_not change { subject.password } }
+          it { expect { set_password(subject, nil, nil); subject.save }.to_not change { subject.password_confirmation } }
+          it { expect { set_password(subject, nil, nil); subject.save }.to_not change { subject.crypted_password } }
+          it { expect { set_password(subject, nil, nil); subject.save }.to_not change { subject.password_salt } }
+        end
+        context 'invalid password confirmation' do
+          it { expect { set_password(subject, @pass, nil); subject.save }.to raise_error(Sequel::ValidationFailed) }
+          it { expect { set_password(subject, @pass, ''); subject.save }.to raise_error(Sequel::ValidationFailed) }
+          it { expect { set_password(subject, @pass, 123); subject.save }.to raise_error(Sequel::ValidationFailed) }
+          it { expect { set_password(subject, @pass, /ssssssssssssssss123456/); subject.save }.to raise_error(Sequel::ValidationFailed) }
+          it { expect { set_password(subject, @pass, @pass.to_sym); subject.save }.to raise_error(Sequel::ValidationFailed) }
+          it { expect { set_password(subject, @pass, @pass[0..-2]); subject.save }.to raise_error(Sequel::ValidationFailed) }
+          it { expect { set_password(subject, @pass, @pass.upcase); subject.save }.to raise_error(Sequel::ValidationFailed) }
+        end
+      end
+      context 'already exist item' do
+        subject { @admin }
+        it { expect { set_password(subject, @pass, @pass); subject.save }.to_not raise_error }
+        it { expect { set_password(subject, @pass, @pass); subject.save }.to_not change { subject.password } }
+        it { expect { set_password(subject, @pass, @pass); subject.save }.to_not change { subject.password_confirmation } }
+        context 'changed password' do
+          include_context 'set digest mock'
+          let(:new_password) { @pass }
+          it { expect { set_password(subject, @pass, @pass); subject.save }.to change { subject.crypted_password }.to(@crypted) }
+          it { expect { set_password(subject, @pass, @pass); subject.save }.to change { subject.password_salt }.to(@salt) }
+        end
+        context 'no changed password' do
+          include_context 'set no digest mock'
+          it { expect { set_password(subject, nil, nil); subject.save }.to_not raise_error }
+          it { expect { set_password(subject, nil, nil); subject.save }.to_not change { subject.password } }
+          it { expect { set_password(subject, nil, nil); subject.save }.to_not change { subject.password_confirmation } }
+          it { expect { set_password(subject, nil, nil); subject.save }.to_not change { subject.crypted_password } }
+          it { expect { set_password(subject, nil, nil); subject.save }.to_not change { subject.password_salt } }
+        end
+        context 'invalid password confirmation' do
+          it { expect { set_password(subject, @pass, nil); subject.save }.to raise_error(Sequel::ValidationFailed) }
+          it { expect { set_password(subject, @pass, ''); subject.save }.to raise_error(Sequel::ValidationFailed) }
+          it { expect { set_password(subject, @pass, 123); subject.save }.to raise_error(Sequel::ValidationFailed) }
+          it { expect { set_password(subject, @pass, /ssssssssssssssss123456/); subject.save }.to raise_error(Sequel::ValidationFailed) }
+          it { expect { set_password(subject, @pass, @pass.to_sym); subject.save }.to raise_error(Sequel::ValidationFailed) }
+          it { expect { set_password(subject, @pass, @pass[0..-2]); subject.save }.to raise_error(Sequel::ValidationFailed) }
+          it { expect { set_password(subject, @pass, @pass.upcase); subject.save }.to raise_error(Sequel::ValidationFailed) }
+        end
+      end
     end
   end
 end

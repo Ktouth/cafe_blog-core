@@ -12,6 +12,8 @@ module CafeBlog
       # @attr [String] mailto 筆者への連絡用メールアドレス。連絡不要の場合は +nil+ を受け付ける
       # @attr_reader [String] crypted_password 暗号化された筆者のログイン用パスワード
       # @attr_reader [String] password_salt パスワード紹介用のsaltコード
+      # @attr [String] password パスワード変更時に新規パスワードを設定する。通常時および保存完了後は+nil+を返す
+      # @attr [String] password_confirmation パスワード変更時に新規パスワード(確認のため)を設定する。通常時および保存完了後は+nil+を返す
       class Author < Core::Model(:authors)
         restrict_primary_key
         set_restricted_columns :code
@@ -36,12 +38,17 @@ module CafeBlog
             end
           end
         end
+        [:password, :password_confirmation].each do |sym|
+          attr_reader sym
+          class_eval("def #{sym}=(value); unless @#{sym} == value; @#{sym} = value; modified! end; @#{sym} end", __FILE__, __LINE__)
+        end
 
         validates(:code) { presence and uniqueness and length(:minimum => 3, :maximum => 16) and format(:with => /^(?![_\d])[a-z\d_]+$/) }
         validates(:name) { presence and uniqueness and length(:minimum => 3) and format(:with => /^.{3,}$/u) }
         validates(:mailto) { format(:with => :email, :allow_nil => true) }
         validates(:crypted_password) { length(:is => 40, :allow_nil => true) and format(:with => /^[\da-f]{40}$/, :allow_nil => true) }
         validates(:password_salt) { length(:is => 40, :allow_nil => true) and format(:with => /^[\da-f]{40}$/, :allow_nil => true) }
+        validates(:password) { format(:with => /^(?![a-z]+$|[A-Z]+$|\d+$)[A-Za-z\d]{8,40}$/, :allow_nil => true) and confirmation(:allow_nil => true) }
 
         class <<self
           # 筆者コードとパスワードを元に認証処理を行う
@@ -54,6 +61,17 @@ module CafeBlog
             end
             nil
           end
+        end
+
+        private
+
+        def before_save
+          if password
+            self[:password_salt] = CafeBlog::Core::Environment.check_instance.generate_salt
+            self[:crypted_password] = Digest::SHA1.hexdigest([code, password, password_salt].join(':'))
+          end
+          [:@password, :@password_confirmation].each {|sym| remove_instance_variable(sym) rescue nil }
+          super 
         end
       end
     end
