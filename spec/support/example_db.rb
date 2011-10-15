@@ -7,6 +7,8 @@ ExampleDBData[:authors] = [
   {:id => 3, :code => 'example', :name => 'example', :mailto => 'foobar@example.com', },
   {:id => 4, :code => 'cafe_blog', :name => 'ブログ筆者2385', :mailto => nil, },
   {:id => 5, :code => 'locked_user', :name => 'ログインは許可していない', :mailto => nil, :loginable => false },
+  {:id => 6, :code => 'disabled_user', :name => 'このユーザは認識されません', :mailto => nil, :enable => false },
+  {:id => 7, :code => 'suspended_user', :name => '無効ユーザのログインは許可していない', :mailto => nil, :enable => false },
 ]
 
 ExampleDBAuthorsPassword = {}
@@ -27,3 +29,4 @@ end
 update_example_db_authors_password('admin', 'pass159354word')
 update_example_db_authors_password('example', 'example1462example')
 update_example_db_authors_password('locked_user', 'Locked1User2IS3Invalid4Login')
+update_example_db_authors_password('suspended_user', 'ThisUser123456IsSuspended')

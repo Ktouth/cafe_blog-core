@@ -93,8 +93,11 @@ describe 'CafeBlog::Core::Model::Author' do
       before do
         @not_loginable = @model.filter(:loginable => false).first
         @not_loginable_password = ExampleDBAuthorsPassword[@not_loginable.code][:password]
+        @disable = @model.filter(:enable => false).exclude(:crypted_password => nil).first
+        @disable_password = ExampleDBAuthorsPassword[@disable.code][:password]
       end
       it { expect { @result = @model.authentication(@not_loginable.code, @not_loginable_password) }.to_not change { @result ? @result.code : nil } }
+      it { expect { @result = @model.authentication(@disable.code, @disable_password) }.to_not change { @result ? @result.code : nil } }
     end
   end
   
@@ -102,6 +105,7 @@ describe 'CafeBlog::Core::Model::Author' do
     subject { CafeBlog::Core::Model::Author.query }
     it { should be_a(Sequel::Dataset) }
     it { subject.all? {|x| x.is_a?(CafeBlog::Core::Model::Author) }.should be_true }
+    it { subject.all? {|x| x.enable }.should be_true }
   end
 
   describe 'instance methods' do
@@ -128,6 +132,7 @@ describe 'CafeBlog::Core::Model::Author' do
     it { should respond_to(:password) }
     it { should respond_to(:password_confirmation) }
     it { should respond_to(:loginable) }
+    it { should respond_to(:enable) }
 
     context '#id' do
       include_context 'authors reset'
@@ -396,6 +401,27 @@ describe 'CafeBlog::Core::Model::Author' do
       it { expect { @author.loginable = /regexp/; @author.save }.to change { [@author.loginable, @author.new?] }.from([true, true]).to([true, false]) }
       it { expect { @author.loginable = '日本語'; @author.save }.to change { [@author.loginable, @author.new?] }.from([true, true]).to([true, false]) }
       it { expect { @author.loginable = :email; @author.save }.to change { [@author.loginable, @author.new?] }.from([true, true]).to([true, false]) }
+    end
+
+    context '#enable' do
+      include_context 'authors reset'
+      before { args_set(:enable); @invalid = CafeBlog::Core::Model::Author[6] }
+      subject { @author.enable }
+
+      it { should be_true }
+      it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:enable => nil)) }.to raise_error }
+      it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:enable => true)) }.to_not raise_error }
+      it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:enable => false)) }.to_not raise_error }
+      it { expect { @author.enable = true; @author.save }.to change { [@author.enable, @author.new?] }.from([true, true]).to([true, false]) }
+      it { expect { @author.enable = false; @author.save }.to change { [@author.enable, @author.new?] }.from([true, true]).to([false, false]) }
+      it { expect { @invalid.enable = true; @invalid.save }.to change { [@invalid.enable, @invalid.new?] }.from([false, false]).to([true, false]) }
+      it { expect { @author.enable = nil; @author.save }.to raise_error }
+      it { expect { @author.enable = ''; @author.save }.to raise_error }
+      it { expect { @author.enable = 'abcde'; @author.save }.to change { [@author.enable, @author.new?] }.from([true, true]).to([true, false]) }
+      it { expect { @author.enable = 1234589; @author.save }.to change { [@author.enable, @author.new?] }.from([true, true]).to([true, false]) }
+      it { expect { @author.enable = /regexp/; @author.save }.to change { [@author.enable, @author.new?] }.from([true, true]).to([true, false]) }
+      it { expect { @author.enable = '日本語'; @author.save }.to change { [@author.enable, @author.new?] }.from([true, true]).to([true, false]) }
+      it { expect { @author.enable = :email; @author.save }.to change { [@author.enable, @author.new?] }.from([true, true]).to([true, false]) }
     end
   end
 end
