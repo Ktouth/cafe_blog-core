@@ -1,9 +1,11 @@
 # @private
 # @note sequel_notnaughty gem が提供する UniquenessValidation クラスのパッチコード
 # @author K.Ktouth
-module NotNaughty
-  class UniquenessValidation
-    def initialize(valid, attributes) #:nodoc:
+module NotNaughty # :nodoc:
+  class UniquenessValidation # :nodoc:
+    private
+
+    def initialize(valid, attributes)
       valid[:message] ||= '%s is already taken.'
       valid[:in] = case valid[:in]
       when Array; valid[:in].map { |scp| scp.to_sym }
