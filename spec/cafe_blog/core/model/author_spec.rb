@@ -97,6 +97,12 @@ describe 'CafeBlog::Core::Model::Author' do
       it { expect { @result = @model.authentication(@not_loginable.code, @not_loginable_password) }.to_not change { @result ? @result.code : nil } }
     end
   end
+  
+  describe '.query' do
+    subject { CafeBlog::Core::Model::Author.query }
+    it { should be_a(Sequel::Dataset) }
+    it { subject.all? {|x| x.is_a?(CafeBlog::Core::Model::Author) }.should be_true }
+  end
 
   describe 'instance methods' do
     before do

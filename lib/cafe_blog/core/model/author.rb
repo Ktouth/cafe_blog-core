@@ -64,6 +64,11 @@ module CafeBlog
           end
         end
 
+        # 適切な指定を行ったクエリを取得します
+        # @method query
+        # @return [Sequel::Dataset] {Author}モデルのクエリを返します
+        subset(:query)# { loginable == true || loginable == false }
+
         private
 
         def initialize_set(h)
