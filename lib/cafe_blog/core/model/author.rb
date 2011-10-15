@@ -14,6 +14,7 @@ module CafeBlog
       # @attr_reader [String] password_salt パスワード紹介用のsaltコード
       # @attr [String] password パスワード変更時に新規パスワードを設定する。通常時および保存完了後は+nil+を返す
       # @attr [String] password_confirmation パスワード変更時に新規パスワード(確認のため)を設定する。通常時および保存完了後は+nil+を返す
+      # @attr [TrueClass] loginable 認証機能においてログイン可能かどうかを取得または設定する。規定値は+true+
       class Author < Core::Model(:authors)
         restrict_primary_key
         set_restricted_columns :code
@@ -54,9 +55,9 @@ module CafeBlog
           # 筆者コードとパスワードを元に認証処理を行う
           # @param [String] code 認証したい筆者の識別コード
           # @param [String] password 認証用のパスワード
-          # @return [Author] 認証に成功した場合は対応する筆者情報を返す。該当する筆者がいない、パスワードが間違っている、不正な引数を渡された場合は+nil+を返す
+          # @return [Author] 認証に成功した場合は対応する筆者情報を返す。該当する筆者がいない、ログイン権限がない、パスワードが間違っている、不正な引数を渡された場合は+nil+を返す
           def authentication(code, password)
-            if code.is_a?(String) and password.is_a?(String) and author = filter(:code => code).first
+            if code.is_a?(String) and password.is_a?(String) and author = filter(:code => code, :loginable => true).first
               return author if Digest::SHA1.hexdigest([author.code, password, author.password_salt].join(':')) == author.crypted_password
             end
             nil
@@ -64,6 +65,10 @@ module CafeBlog
         end
 
         private
+
+        def initialize_set(h)
+          set({:loginable => true}.merge(h))
+        end
 
         def before_save
           if password

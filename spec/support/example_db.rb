@@ -6,6 +6,7 @@ ExampleDBData[:authors] = [
   {:id => 2, :code => 'foobar', :name => 'フーバー', :mailto => nil, },
   {:id => 3, :code => 'example', :name => 'example', :mailto => 'foobar@example.com', },
   {:id => 4, :code => 'cafe_blog', :name => 'ブログ筆者2385', :mailto => nil, },
+  {:id => 5, :code => 'locked_user', :name => 'ログインは許可していない', :mailto => nil, :loginable => false },
 ]
 
 ExampleDBAuthorsPassword = {}
@@ -24,4 +25,5 @@ def update_example_db_authors_password(code, password)
 end
 
 update_example_db_authors_password('admin', 'pass159354word')
-update_example_db_authors_password('example', 'example_1462_example')
+update_example_db_authors_password('example', 'example1462example')
+update_example_db_authors_password('locked_user', 'Locked1User2IS3Invalid4Login')

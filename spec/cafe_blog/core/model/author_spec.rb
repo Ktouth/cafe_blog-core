@@ -89,6 +89,13 @@ describe 'CafeBlog::Core::Model::Author' do
       end
       it { expect { @result = @model.authentication(@admin.code, @password) }.to change { @result ? @result.code : nil }.from(nil).to(@admin.code) }
     end
+    context 'not loginable check' do
+      before do
+        @not_loginable = @model.filter(:loginable => false).first
+        @not_loginable_password = ExampleDBAuthorsPassword[@not_loginable.code][:password]
+      end
+      it { expect { @result = @model.authentication(@not_loginable.code, @not_loginable_password) }.to_not change { @result ? @result.code : nil } }
+    end
   end
 
   describe 'instance methods' do
@@ -114,6 +121,7 @@ describe 'CafeBlog::Core::Model::Author' do
     it { should_not be_respond_to(:password_salt=) }
     it { should respond_to(:password) }
     it { should respond_to(:password_confirmation) }
+    it { should respond_to(:loginable) }
 
     context '#id' do
       include_context 'authors reset'
@@ -361,6 +369,27 @@ describe 'CafeBlog::Core::Model::Author' do
           it { expect { set_password(subject, @pass, @pass.upcase); subject.save }.to raise_error(Sequel::ValidationFailed) }
         end
       end
+    end
+
+    context '#loginable' do
+      include_context 'authors reset'
+      before { args_set(:loginable); @invalid = CafeBlog::Core::Model::Author[5] }
+      subject { @author.loginable }
+
+      it { should be_true }
+      it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:loginable => nil)) }.to raise_error }
+      it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:loginable => true)) }.to_not raise_error }
+      it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:loginable => false)) }.to_not raise_error }
+      it { expect { @author.loginable = true; @author.save }.to change { [@author.loginable, @author.new?] }.from([true, true]).to([true, false]) }
+      it { expect { @author.loginable = false; @author.save }.to change { [@author.loginable, @author.new?] }.from([true, true]).to([false, false]) }
+      it { expect { @invalid.loginable = true; @invalid.save }.to change { [@invalid.loginable, @invalid.new?] }.from([false, false]).to([true, false]) }
+      it { expect { @author.loginable = nil; @author.save }.to raise_error }
+      it { expect { @author.loginable = ''; @author.save }.to raise_error }
+      it { expect { @author.loginable = 'abcde'; @author.save }.to change { [@author.loginable, @author.new?] }.from([true, true]).to([true, false]) }
+      it { expect { @author.loginable = 1234589; @author.save }.to change { [@author.loginable, @author.new?] }.from([true, true]).to([true, false]) }
+      it { expect { @author.loginable = /regexp/; @author.save }.to change { [@author.loginable, @author.new?] }.from([true, true]).to([true, false]) }
+      it { expect { @author.loginable = '日本語'; @author.save }.to change { [@author.loginable, @author.new?] }.from([true, true]).to([true, false]) }
+      it { expect { @author.loginable = :email; @author.save }.to change { [@author.loginable, @author.new?] }.from([true, true]).to([true, false]) }
     end
   end
 end

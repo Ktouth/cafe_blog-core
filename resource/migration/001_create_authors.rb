@@ -7,6 +7,7 @@ Sequel.migration do
       String :mailto
       String :crypted_password, :size => 40
       String :password_salt, :size => 40
+      TrueClass :loginable, :null => false, :default => true
     end
   end
   down do
