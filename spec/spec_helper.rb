@@ -50,7 +50,7 @@ end
 def database_resetdata(db, *excepts)
   db.transaction do
     ExampleDBDataTables.each do |t_name|
-      next if excepts.include?(t_name)
+      next if excepts.include?(t_name) or !db.table_exists?(t_name)
       db[t_name].delete
       if ExampleDBSeqenceReset[t_name]
         db[:sqlite_sequence].filter(:name => t_name.to_s).update(:seq => 0)
