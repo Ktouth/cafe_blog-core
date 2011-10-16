@@ -16,7 +16,10 @@ def clear_environment
   CafeBlog::Core::Environment.instance_variable_set(:@instance, nil)
   mmod = CafeBlog::Core::Model
   mmod.constants.each do |c|
-    mmod.instance_eval { remove_const c } if mmod.const_get(c) < Sequel::Model
+    if (klass = mmod.const_get(c)) < Sequel::Model
+      Sequel::Model::ANONYMOUS_MODEL_CLASSES.delete_if {|k,v| v == klass.superclass }
+      mmod.instance_eval { remove_const c }
+    end 
   end
   $LOADED_FEATURES.delete_if {|x| x =~ %r!cafe_blog/core/model/.*$! }
 end
