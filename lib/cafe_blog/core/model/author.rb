@@ -30,14 +30,11 @@ module CafeBlog
             end
           ENDE
         end
+        base_mods = ancestors[0 ... ancestors.index(Sequel::Model)]
         [:crypted_password, :password_salt].each do |sym|
           meth = "#{sym}="
-          ancestors.each do |c|
-            raise ArgumentError, 'method[ %s ] is not found.' % meth if c == Sequel::Model
-            if c.instance_methods(false).include?(meth)
-              c.class_eval { remove_method(meth) }
-              break
-            end
+          if c = base_mods.find {|x| x.instance_methods(false).include?(meth) }
+            c.class_eval { remove_method(meth) }
           end
         end
         [:password, :password_confirmation].each do |sym|
