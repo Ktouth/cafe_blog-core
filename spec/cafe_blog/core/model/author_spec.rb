@@ -427,9 +427,9 @@ describe 'CafeBlog::Core::Model::Author' do
 end
 
 describe 'migration: 001_create_authors' do
-  let(:database_migration_params) { {:target => 1} }
   context 'migration.up' do
     include_context 'Environment.setup'
+    let(:database_migration_params) { {:target => 1} }
     let(:require_models) { false }
     specify 'version is 1' do @database[:schema_info].first[:version].should == 1 end
     specify 'created authors' do @database.tables.should be_include(:authors) end
