@@ -1,5 +1,5 @@
-ExampleDBDataTables = [:authors]
-ExampleDBSeqenceReset = {:authors => true}
+ExampleDBDataTables = [:authors, :author_logs]
+ExampleDBSeqenceReset = {:authors => true, :author_logs => true}
 ExampleDBData = {}
 ExampleDBData[:authors] = [
   {:id => 1, :code => 'admin', :name => '管理人', :mailto => 'admin@foobar.biz', },
@@ -30,3 +30,16 @@ update_example_db_authors_password('admin', 'pass159354word')
 update_example_db_authors_password('example', 'example1462example')
 update_example_db_authors_password('locked_user', 'Locked1User2IS3Invalid4Login')
 update_example_db_authors_password('suspended_user', 'ThisUser123456IsSuspended')
+
+ExampleDBData[:author_logs] = [
+  {:id => 1,},
+  {:id => 2,},
+  {:id => 3,},
+  {:id => 4,},
+  {:id => 5,},
+  {:id => 6,},
+  {:id => 7,},
+  {:id => 8,},
+  {:id => 9,},
+  {:id => 10,},
+]
