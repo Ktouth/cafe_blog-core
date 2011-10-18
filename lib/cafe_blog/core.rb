@@ -44,5 +44,7 @@ end
 require 'sequel_notnaughty'
 require 'cafe_blog/core/missing/validations/uniqueness_validation'
 Sequel::Model.plugin :notnaughty
+require 'cafe_blog/core/model'
+Sequel::Model.plugin CafeBlog::Core::ModelHelper
 
 require 'cafe_blog/core/environment'
