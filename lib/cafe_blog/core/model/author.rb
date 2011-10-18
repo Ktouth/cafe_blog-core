@@ -19,17 +19,7 @@ module CafeBlog
       class Author < Core::Model(:authors)
         restrict_primary_key
         set_restricted_columns :code
-        [primary_key, restricted_columns].flatten.each do |sym|
-          class_eval(<<-ENDE, __FILE__, __LINE__)
-            def #{sym}=(value)
-              if new?
-                self[:#{sym}] = value
-              else
-                raise ModelOperationError, '#{sym} is primary key or restricted columns.'
-              end
-            end
-          ENDE
-        end
+        set_operation_freeze_columns
         base_mods = ancestors[0 ... ancestors.index(Sequel::Model)]
         [:crypted_password, :password_salt].each do |sym|
           meth = "#{sym}="
