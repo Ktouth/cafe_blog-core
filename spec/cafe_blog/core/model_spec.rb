@@ -56,6 +56,7 @@ describe 'CafeBlog::Core::ModelHelper' do
     subject { @model }
     it { should respond_to(:set_operation_freeze_columns) }
     it { should respond_to(:remove_column_setters) }
+    it { should respond_to(:alt_column_accessors) }
     it { [@model.primary_key, @model.restricted_columns].flatten.should == [:ident, :time] }
 
     describe '#set_operation_freeze_columns' do
@@ -129,12 +130,48 @@ describe 'CafeBlog::Core::ModelHelper' do
         it { expect { @model.remove_column_setters :time, :time, :time }.to_not raise_error }
         it { expect { @model.remove_column_setters :ident; @model.remove_column_setters :ident }.to_not raise_error }
       end
-      
       context '(remove all setters)' do
         before { @model.class_eval { def time=(value); :result_item_ok end }; @item = @model[3] }
         it { (@item.send :time=, 12113).should == :result_item_ok }
         it { expect { @model.remove_column_setters :time }.to_not raise_error }
         it { expect { @model.remove_column_setters :time }.to change { @item.respond_to?(:time=) }.from(true).to(false) }
+      end
+    end
+
+    describe '#alt_column_accessors' do
+      before { @exist = @model[3] }
+      context '(called invalid params)' do
+        it { expect { @model.alt_column_accessors }.to raise_error(ArgumentError) }
+        it { expect { @model.alt_column_accessors :ident }.to raise_error(ArgumentError) }
+        it { expect { @model.alt_column_accessors :time }.to raise_error(ArgumentError) }
+        it { expect { @model.alt_column_accessors 1235489 }.to raise_error(ArgumentError) }
+        it { expect { @model.alt_column_accessors 'test_method' }.to raise_error(ArgumentError) }
+        it { expect { @model.alt_column_accessors /regexp/ }.to raise_error(ArgumentError) }
+        it { expect { @model.alt_column_accessors nil, true, false }.to raise_error(ArgumentError) }
+      end
+      context '(called 1 params)' do
+        before { @item, @alt = @model[2], Class.new(CafeBlog::Core::Model(:foobar)).new }
+        it { expect { @model.alt_column_accessors :alter }.to_not raise_error }
+        it { expect { @model.alt_column_accessors :alter }.to change { @item.respond_to?(:alter) }.from(false).to(true) }
+        it { expect { @model.alt_column_accessors :alter }.to change { @item.respond_to?(:alter=) }.from(false).to(true) }
+        it { expect { @model.alt_column_accessors :alter }.to_not change { @alt.respond_to?(:alter) }.to(true) }
+        it { expect { @model.alt_column_accessors :alter }.to_not change { @alt.respond_to?(:alter=) }.to(true) }
+        it { expect { @model.alt_column_accessors :alter; @item.alter = nil }.to_not change { @item.modified? } }
+        it { expect { @model.alt_column_accessors :alter; @item.alter = :test }.to change { @item.modified? }.to(true) }
+        it { expect { @model.alt_column_accessors :alter; @item.alter = 123456 }.to_not change { @item.changed_columns } }
+        it { expect { @model.alt_column_accessors :alter; @item.alter = /regexp/ }.to_not change { @item.values.include?(:alter) } }
+      end
+      context '(called many params)' do
+        before { @item, @alt = @model[4], Class.new(CafeBlog::Core::Model(:foobar)).new }
+        it { expect { @model.alt_column_accessors :alter, :context }.to_not raise_error }
+        it { expect { @model.alt_column_accessors :alter, :context }.to change { @item.respond_to?(:alter) }.from(false).to(true) }
+        it { expect { @model.alt_column_accessors :alter, :context }.to change { @item.respond_to?(:alter=) }.from(false).to(true) }
+        it { expect { @model.alt_column_accessors :alter, :context }.to_not change { @alt.respond_to?(:context) }.to(true) }
+        it { expect { @model.alt_column_accessors :alter, :context }.to_not change { @alt.respond_to?(:context=) }.to(true) }
+        it { expect { @model.alt_column_accessors :alter, :context; @item.context = nil }.to_not change { @item.modified? } }
+        it { expect { @model.alt_column_accessors :alter, :context; @item.context = :test }.to change { @item.modified? }.to(true) }
+        it { expect { @model.alt_column_accessors :alter, :context; @item.context = 123456 }.to_not change { @item.changed_columns } }
+        it { expect { @model.alt_column_accessors :alter, :context; @item.context = /regexp/ }.to_not change { @item.values.include?(:alter) } }
       end
     end
   end
