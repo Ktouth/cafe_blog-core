@@ -55,6 +55,7 @@ describe 'CafeBlog::Core::ModelHelper' do
     include_context 'sample model'
     subject { @model }
     it { should respond_to(:set_operation_freeze_columns) }
+    it { should respond_to(:remove_column_setters) }
     it { [@model.primary_key, @model.restricted_columns].flatten.should == [:ident, :time] }
 
     describe '#set_operation_freeze_columns' do
@@ -99,6 +100,41 @@ describe 'CafeBlog::Core::ModelHelper' do
         specify 'not symbol' do expect { @model.set_operation_freeze_columns /regexp/ }.to raise_error(ArgumentError) end
         specify 'not symbol' do expect { @model.set_operation_freeze_columns nil }.to raise_error(ArgumentError) end
         specify 'not symbol' do expect { @model.set_operation_freeze_columns false }.to raise_error(ArgumentError) end
+      end
+    end
+
+    describe '#remove_column_setters' do
+      before { @exist = @model[3]; @new_time = @exist.time + 9999 }
+      context '(called invalid params)' do
+        it { expect { @model.remove_column_setters }.to raise_error(ArgumentError) }
+        it { expect { @model.remove_column_setters :not_column }.to raise_error(ArgumentError) }
+        it { expect { @model.remove_column_setters 1235489 }.to raise_error(ArgumentError) }
+        it { expect { @model.remove_column_setters 'test_method' }.to raise_error(ArgumentError) }
+        it { expect { @model.remove_column_setters /regexp/ }.to raise_error(ArgumentError) }
+        it { expect { @model.remove_column_setters nil, true, false }.to raise_error(ArgumentError) }
+      end
+      context '(called 1 params)' do
+        before { @item, @alt = @model[2], Class.new(CafeBlog::Core::Model(:foobar)).new }
+        it { expect { @model.remove_column_setters :time }.to_not raise_error }
+        it { expect { @model.remove_column_setters :time }.to change { @item.respond_to?(:time=) }.from(true).to(false) }
+        it { expect { @model.remove_column_setters :time }.to change { @alt.respond_to?(:time=) }.to(false) }
+        it { expect { @model.remove_column_setters :time; @item[:time] = @item.time + 10000 }.to change { @item.time }.by(10000) }
+      end
+      context '(called many params)' do
+        before { @item, @alt = @model[4], Class.new(CafeBlog::Core::Model(:foobar)).new }
+        it { expect { @model.remove_column_setters :ident, :count, :time }.to_not raise_error }
+        it { expect { @model.remove_column_setters :ident, :count, :time }.to change { @item.respond_to?(:time=) }.from(true).to(false) }
+        it { expect { @model.remove_column_setters :ident, :count, :time }.to change { @alt.respond_to?(:ident=) }.to(false) }
+        it { expect { @model.remove_column_setters :ident, :count, :time; @item[:count] = @item.count + 10000 }.to change { @item.count }.by(10000) }
+        it { expect { @model.remove_column_setters :time, :time, :time }.to_not raise_error }
+        it { expect { @model.remove_column_setters :ident; @model.remove_column_setters :ident }.to_not raise_error }
+      end
+      
+      context '(remove all setters)' do
+        before { @model.class_eval { def time=(value); :result_item_ok end }; @item = @model[3] }
+        it { (@item.send :time=, 12113).should == :result_item_ok }
+        it { expect { @model.remove_column_setters :time }.to_not raise_error }
+        it { expect { @model.remove_column_setters :time }.to change { @item.respond_to?(:time=) }.from(true).to(false) }
       end
     end
   end
