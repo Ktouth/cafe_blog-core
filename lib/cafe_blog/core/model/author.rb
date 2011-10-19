@@ -21,11 +21,7 @@ module CafeBlog
         set_restricted_columns :code
         set_operation_freeze_columns
         remove_column_setters :crypted_password, :password_salt
-        
-        [:password, :password_confirmation].each do |sym|
-          attr_reader sym
-          class_eval("def #{sym}=(value); unless @#{sym} == value; @#{sym} = value; modified! end; @#{sym} end", __FILE__, __LINE__)
-        end
+        alt_column_accessors :password, :password_confirmation
 
         validates(:code) { presence and uniqueness and length(:minimum => 3, :maximum => 16) and format(:with => /^(?![_\d])[a-z\d_]+$/) }
         validates(:name) { presence and uniqueness and length(:minimum => 3) and format(:with => /^.{3,}$/u) }
