@@ -20,13 +20,8 @@ module CafeBlog
         restrict_primary_key
         set_restricted_columns :code
         set_operation_freeze_columns
-        base_mods = ancestors[0 ... ancestors.index(Sequel::Model)]
-        [:crypted_password, :password_salt].each do |sym|
-          meth = "#{sym}="
-          if c = base_mods.find {|x| x.instance_methods(false).include?(meth) }
-            c.class_eval { remove_method(meth) }
-          end
-        end
+        remove_column_setters :crypted_password, :password_salt
+        
         [:password, :password_confirmation].each do |sym|
           attr_reader sym
           class_eval("def #{sym}=(value); unless @#{sym} == value; @#{sym} = value; modified! end; @#{sym} end", __FILE__, __LINE__)
