@@ -32,14 +32,14 @@ update_example_db_authors_password('locked_user', 'Locked1User2IS3Invalid4Login'
 update_example_db_authors_password('suspended_user', 'ThisUser123456IsSuspended')
 
 ExampleDBData[:author_logs] = [
-  {:id => 1,},
-  {:id => 2,},
-  {:id => 3,},
-  {:id => 4,},
-  {:id => 5,},
-  {:id => 6,},
-  {:id => 7,},
-  {:id => 8,},
-  {:id => 9,},
-  {:id => 10,},
+  {:id => 1, :time => Time.local(2004, 11, 23, 1, 11, 11),},
+  {:id => 2, :time => Time.local(2005, 7, 11, 8, 12, 20),},
+  {:id => 3, :time => Time.local(2005, 10, 22, 3, 13, 9),},
+  {:id => 4, :time => Time.local(2006, 6, 12, 9, 14, 17),},
+  {:id => 5, :time => Time.local(2007, 3, 7,22, 15, 28),},
+  {:id => 6, :time => Time.local(2009, 7, 5,18, 16, 16),},
+  {:id => 7, :time => Time.local(2010, 12, 25,14, 17, 45),},
+  {:id => 8, :time => Time.local(2011, 1, 1,13, 18, 37),},
+  {:id => 9, :time => Time.local(2011, 2, 21,22, 19, 55),},
+  {:id => 10, :time => Time.local(2011, 3, 23, 1, 20, 59),},
 ]

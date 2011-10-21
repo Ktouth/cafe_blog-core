@@ -8,8 +8,9 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
     end
   end
   def valid_args(args = {})
-    {:id => nil,}.merge(args)
+    {}.merge(args)
   end
+  def valid_args_with_time(args = {}); valid_args(args).merge(:time => Time.local(2004, 4, 4, 13, 22, 18)) end
 
   before :all do @model = CafeBlog::Core::Model::AuthorLog end
 
@@ -32,6 +33,7 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
   context '.setter_methods' do
     subject { @model.setter_methods }
     it { should_not include(:id=) }
+    it { should_not include(:time=) }
   end
 
   describe 'instance methods' do
@@ -48,6 +50,8 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
     subject { @item }
 
     it { should respond_to(:id) }
+    it { should respond_to(:time) }
+    it { should_not respond_to(:time=) }
 
     context '#id' do
       include_context 'author_logs reset'
@@ -57,9 +61,29 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
       it { should be_nil }
       it { expect { @item.id = 115; @item.save }.to change { [@item.id, @item.new?] }.from([nil, true]).to([115, false]) }
       it { expect { @model.set(valid_args(:id => nil)) }.to raise_error }
-      it { expect { @new = @model.insert(valid_args(:id => nil)) }.to change { @new }.from(nil).to(116) }
-      it { expect { @model.insert(valid_args(:id => @exist_item.id)) }.to raise_error }
+      it { expect { @new = @model.insert(valid_args_with_time(:id => nil)) }.to change { @new }.from(nil).to(116) }
+      it { expect { @model.insert(valid_args_with_time(:id => @exist_item.id)) }.to raise_error }
       it { expect { @exist_item.id = 5932 }.to raise_error }
+    end
+
+    context '#time' do
+      include_context 'author_logs reset'
+      before do
+        @time_last = @model.order_by(:id.desc).first.id
+        @time_now = Time.now
+        Time.should_receive(:now).with(no_args).and_return { @time_now }
+        @item = @model.new; args_set(:time)
+      end
+      subject { @item.time }
+
+      it { should be_a(Time) }
+      it { should == @time_now }
+      it { expect { @item.time = Time.local(2001, 11, 25, 13, 22, 48) }.to raise_error(NoMethodError) }
+      it { expect { @exist_item.time = 5932 }.to raise_error(NoMethodError) }
+      it { expect { @model.set(valid_args(:time => nil)) }.to raise_error }
+      it { expect { @time_last = @model.insert(valid_args(:time => Time.local(2008, 3, 7, 5, 19, 22))) }.to_not raise_error }
+      it { expect { @time_last = @model.insert(valid_args(:time => @time_now)) }.to change { @time_last }.by(1) }
+      it { expect { @item.values[:time] = nil; @item.save }.to raise_error(Sequel::ValidationFailed) }
     end
   end
 end
