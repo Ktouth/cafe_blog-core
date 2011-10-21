@@ -44,6 +44,10 @@ module CafeBlog
           instance
         end
 
+        # アクセス者のホスト名を取得する
+        # @return [String] ホスト名を返す。ホスト名が取得出来なかった時は「+unknown.host.name+」を返す
+        def get_host_address; ENV['REMOTE_HOST'] || 'unknown.host.name' end
+
         private
   
         # @private

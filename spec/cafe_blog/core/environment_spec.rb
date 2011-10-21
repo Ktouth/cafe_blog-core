@@ -127,6 +127,20 @@ describe 'CafeBlog::Core::Environment' do
     end
   end
 
+  describe '.get_host_address' do
+    let(:host_address) { '10-123-11-95.host.example.org' }
+    before do
+      @address = host_address
+      ENV.should_receive(:[]).with('REMOTE_HOST').and_return { @address }
+    end
+    subject { CafeBlog::Core::Environment.get_host_address }
+    it { should == @address }
+    context '(not address)' do
+      let(:host_address) { nil }
+      it { should == 'unknown.host.name' }
+    end
+  end
+
   describe '#database' do
     include_context('after .setup')
     subject { CafeBlog::Core::Environment.instance.database }
