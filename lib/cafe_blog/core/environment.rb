@@ -66,7 +66,7 @@ module CafeBlog
       # @return [String] パスワードを暗号化するためのsalt文字列を返します
       def generate_salt
         require 'digest/sha1'
-        Digest::SHA1.hexdigest( [salt_seed, rand(65521), Time.now, Process.pid, ENV['REMOTE_HOST'] || 'unknown.host.name'].join(':') )
+        Digest::SHA1.hexdigest( [salt_seed, rand(65521), Time.now, Process.pid, Environment.get_host_address].join(':') )
       end
 
       private
