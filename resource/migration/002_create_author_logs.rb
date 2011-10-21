@@ -3,6 +3,7 @@ Sequel.migration do
     create_table :author_logs do
       primary_key :id
       Time :time, :null => false
+      String :host, :null => false
     end
   end
   down do
