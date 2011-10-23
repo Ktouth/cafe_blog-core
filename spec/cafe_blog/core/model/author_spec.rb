@@ -28,7 +28,7 @@ describe 'CafeBlog::Core::Model::Author' do
         i += 1
       end
     end
-    {:id => nil, :code => code, :name => name }.merge(args)
+    {:code => code, :name => name }.merge(args)
   end
 
   subject { CafeBlog::Core::Model::Author }
@@ -141,9 +141,9 @@ describe 'CafeBlog::Core::Model::Author' do
 
       it { should be_nil }
       it { expect { @author.id = 15; @author.save }.to change { [@author.id, @author.new?] }.from([nil, true]).to([15, false]) }
-      it { expect { CafeBlog::Core::Model::Author.set(valid_args(:id => nil)) }.to raise_error }
-      it { expect { @new = CafeBlog::Core::Model::Author.insert(valid_args(:id => nil)) }.to change { @new }.from(nil).to(16) }
+      it { expect { @new = CafeBlog::Core::Model::Author.insert(valid_args) }.to change { @new }.from(nil).to(16) }
       it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:id => @admin.id)) }.to raise_error }
+      it { expect { CafeBlog::Core::Model::Author.create(valid_args) }.to_not raise_error }
       it { expect { @admin.id = 5932 }.to raise_error }
     end
 
@@ -158,6 +158,8 @@ describe 'CafeBlog::Core::Model::Author' do
       it { expect { @author.code = 'asadfdefg'; @author.save }.to change { [@author.code, @author.new?] }.from([nil, true]).to(['asadfdefg', false]) }
       it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:code => nil)) }.to raise_error }
       it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:code => @admin.code)) }.to raise_error }
+      it { expect { CafeBlog::Core::Model::Author.create(valid_args(:code => 'valid4create')) }.to_not raise_error }
+      it { expect { @new = CafeBlog::Core::Model::Author.create(valid_args(:code => 'valid4create2')) }.to change { @new } }
       it { expect { @author.code = ''; @author.save }.to raise_error }
       it { expect { @author.code = '123564896123'; @author.save }.to raise_error }
       it { expect { @author.code = 'ab'; @author.save }.to raise_error }

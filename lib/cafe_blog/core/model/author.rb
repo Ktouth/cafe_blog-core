@@ -18,8 +18,7 @@ module CafeBlog
       # @attr [TrueClass] enable 筆者情報として有効かどうかを取得または設定する。規定値は+true+
       class Author < Core::Model(:authors)
         restrict_primary_key
-        set_restricted_columns :code
-        set_operation_freeze_columns
+        set_operation_freeze_columns :id, :code
         remove_column_setters :crypted_password, :password_salt
         alt_column_accessors :password, :password_confirmation
 
