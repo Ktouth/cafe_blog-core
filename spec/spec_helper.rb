@@ -47,14 +47,15 @@ def database_demigrate(db, version = 0)
   require 'sequel/extensions/migration'
   Sequel::Migrator.run(db, MigrationDirectory, :target => version)
 end
+def reset_autoincrement_count(db, table, count = 0)
+  db[:sqlite_sequence].filter(:name => table.to_s).update(:seq => count)
+end
 def database_resetdata(db, *excepts)
   db.transaction do
     ExampleDBDataTables.each do |t_name|
       next if excepts.include?(t_name) or !db.table_exists?(t_name)
       db[t_name].delete
-      if ExampleDBSeqenceReset[t_name]
-        db[:sqlite_sequence].filter(:name => t_name.to_s).update(:seq => 0)
-      end
+      reset_autoincrement_count(db, t_name) if ExampleDBSeqenceReset[t_name]
       db[t_name].insert_multiple(ExampleDBData[t_name])
     end
   end
