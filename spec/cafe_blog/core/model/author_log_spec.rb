@@ -58,7 +58,13 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
     it { should_not respond_to(:time=) }
     it { should respond_to(:host) }
     it { should_not respond_to(:host=) }
-
+    it { should respond_to(:author) }
+    it { should respond_to(:author=) }
+    it { should be_respond_to(:author_id) }
+    it { expect { subject.author_id }.to raise_error(NoMethodError) }
+    it { should be_respond_to(:author_id=) }
+    it { expect { subject.author_id = 2 }.to raise_error(NoMethodError) }
+    
     context '#id' do
       include_context 'author_logs reset'
       before { args_set(:id) }
@@ -66,7 +72,7 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
 
       it { should be_nil }
       it { expect { @item.id = 115; @item.save }.to change { [@item.id, @item.new?] }.from([nil, true]).to([115, false]) }
-      it { expect { @model.set(valid_args(:id => nil)) }.to raise_error }
+      it { expect { @model.create(valid_args(:id => nil)) }.to raise_error }
       it { expect { @new = @model.insert(valid_args(:id => nil)) }.to change { @new }.from(nil).to(116) }
       it { expect { @model.insert(valid_args(:id => @exist_item.id)) }.to raise_error }
       it { expect { @exist_item.id = 5932 }.to raise_error }
@@ -80,13 +86,17 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
         Time.should_receive(:now).with(no_args).and_return { @time_now }
         @item = @model.new; args_set(:time)
       end
+      def _valid_args(time = nil)
+        Time.should_receive(:now).with(no_args).and_return { @time_now }
+        valid_args(:time => time)
+      end
       subject { @item.time }
 
       it { should be_a(Time) }
       it { should == @time_now }
       it { expect { @item.time = Time.local(2001, 11, 25, 13, 22, 48) }.to raise_error(NoMethodError) }
       it { expect { @exist_item.time = 5932 }.to raise_error(NoMethodError) }
-      it { expect { @model.set(valid_args(:time => nil)) }.to raise_error }
+      it { expect { @model.create(_valid_args) }.to raise_error }
       it { expect { @time_last = @model.insert(valid_args(:time => Time.local(2008, 3, 7, 5, 19, 22))) }.to_not raise_error }
       it { expect { @time_last = @model.insert(valid_args(:time => @time_now)) }.to change { @time_last }.by(1) }
       it { expect { @item.values[:time] = nil; @item.save }.to raise_error(Sequel::ValidationFailed) }
@@ -100,13 +110,17 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
         CafeBlog::Core::Environment.should_receive(:get_host_address).with(no_args).and_return { @host_addr }
         @item = @model.new; args_set(:host)
       end
+      def _valid_args(host = nil)
+        CafeBlog::Core::Environment.should_receive(:get_host_address).with(no_args).and_return { @host_addr }
+        valid_args(:host => host)
+      end
       subject { @item.host }
 
       it { should be_a(String) }
       it { should == @host_addr }
       it { expect { @item.host = 'host.localtime.org' }.to raise_error(NoMethodError) }
       it { expect { @exist_item.host = '5932' }.to raise_error(NoMethodError) }
-      it { expect { @model.set(valid_args(:host => nil)) }.to raise_error }
+      it { expect { @model.create(_valid_args) }.to raise_error }
       it { expect { @host_last = @model.insert(valid_args(:host => 'example.host.org')) }.to_not raise_error }
       it { expect { @host_last = @model.insert(valid_args(:host => @host_addr)) }.to change { @host_last }.by(1) }
       it { expect { @item.values[:host] = nil; @item.save }.to raise_error(Sequel::ValidationFailed) }
@@ -114,6 +128,53 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
       it { expect { @item.values[:host] = /regexp/; @item.save }.to raise_error(TypeError) }
       it { expect { @item.values[:host] = :sample; @item.save }.to raise_error(TypeError) }
       it { expect { @item.values[:host] = 'invalid host address format'; @item.save }.to raise_error(Sequel::ValidationFailed) }
+    end
+
+    context '#author' do
+      before :all do
+        @author_class = CafeBlog::Core::Model::Author
+        @_last_author_id = @author_class.order_by(:id.desc).first.id
+      end
+      after :all do
+        @author_class.filter('id > ?', @_last_author_id).destroy
+        reset_autoincrement_count(@database, :authors, @_last_author_id)
+      end
+      include_context 'author_logs reset'
+      before do
+        @author_last = @model.order_by(:id.desc).first.id
+        @item = @model.new; args_set(:author)
+        @admin, @example = @author_class[1], @author_class[3]
+      end
+      def _valid_args(author_id = nil); valid_args(:author_id => author_id).tap {|x| x.delete(:time); x.delete(:host) } end
+      subject { @item.author }
+
+      it { should be_nil }
+      it { @exist_item.author.should be_a(@author_class) }
+      it { expect { @item.author = @admin }.to change { @item.author }.to(@admin) }
+      it { expect { @item.author = @admin; @item.save }.to_not raise_error }
+      it { expect { @model.create(_valid_args(@admin.id)) }.to_not raise_error }
+      it { expect { @model.create(_valid_args(nil)) }.to_not raise_error }
+      it { expect { @author_last = @model.insert(valid_args(:author_id => nil)) }.to_not raise_error }
+      it { expect { @author_last = @model.insert(valid_args(:author_id => nil)) }.to change { @author_last }.by(1) }
+      it { expect { @author_last = @model.insert(valid_args(:author_id => @example.id)) }.to_not raise_error }
+      it { expect { @author_last = @model.insert(valid_args(:author_id => @example.id)) }.to change { @author_last }.by(1) }
+      it { expect { @item.author = nil; @item.save }.to_not raise_error }
+      it { expect { @item.author = nil; @item.save }.to change { @item.id.nil? }.to(false) }
+      it { expect { @item.author = 12354648 }.to raise_error }
+      it { expect { @item.author = 'new_user001' }.to raise_error }
+      it { expect { @item.author = @author_class.new(:code => 'new_user001', :name => '新規ユーザ') }.to raise_error(Sequel::Error) }
+      it { expect { @exist_item.author = @example }.to raise_error(CafeBlog::Core::ModelOperationError) }
+
+      context '(foreign key on delete)' do
+        before do
+          @dummy = @author_class.create(:code => 'new_user003', :name => 'テストユーザ')
+          @dummy_id = @dummy.id
+          @item.author = @dummy
+          @item.save
+        end
+        after { @dummy.destory rescue nil }
+        pending # it { expect { @dummy.destory rescue nil; @item.reload }.to change { @item.author(true) }.to(nil) }
+      end
     end
   end
 end
