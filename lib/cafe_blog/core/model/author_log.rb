@@ -15,16 +15,6 @@ module CafeBlog
         set_operation_freeze_columns :id, :author
         remove_column_setters :time, :host
 
-        [:author_id].uniq.each do |sym|
-          get_model_bases.find_all {|x| x.instance_methods(false).include?(sym.to_s) }.each do |c|
-            c.class_eval { protected(sym) }
-          end
-          meth = "#{sym}="
-          get_model_bases.find_all {|x| x.instance_methods(false).include?(meth) }.each do |c|
-            c.class_eval { protected(meth) }
-          end
-        end
-
         validates(:time) { presence }
         validates(:host) { presence and format :with => %r!^[\-\_\.\!~\*'\(\)a-zA-Z0-9\;\?\@\&\=\+\$\,%#]+$! }
 
