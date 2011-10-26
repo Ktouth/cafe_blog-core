@@ -8,7 +8,7 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
     end
   end
   def valid_args(args = {})
-    {:time => Time.local(2004, 4, 4, 13, 22, 18), :host => 'ppp09156.host.example.com'}.merge(args)
+    {:time => Time.local(2004, 4, 4, 13, 22, 18), :host => 'ppp09156.host.example.com', :action => 'login'}.merge(args)
   end
 
   before :all do @model = CafeBlog::Core::Model::AuthorLog end
@@ -34,6 +34,7 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
     it { should_not include(:id=) }
     it { should_not include(:time=) }
     it { should_not include(:host=) }
+    it { should_not include(:action=) }
   end
 
   describe 'instance methods' do
@@ -64,6 +65,8 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
     it { expect { subject.author_id }.to raise_error(NoMethodError) }
     it { should be_respond_to(:author_id=) }
     it { expect { subject.author_id = 2 }.to raise_error(NoMethodError) }
+    it { should respond_to(:action) }
+    it { should respond_to(:action=) }
     
     context '#id' do
       include_context 'author_logs reset'
@@ -176,6 +179,31 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
         it { expect { @dummy.destroy rescue nil; @item.reload }.to change { @item.author(true) }.to(nil) }
         it { expect { @dummy.destroy rescue nil; @item.reload }.to change { @item.instance_eval { author_id } }.to(nil) }
       end
+    end
+
+    context '#action' do
+      include_context 'author_logs reset'
+      before do
+        @action_last = @model.order_by(:id.desc).first.id
+        @item = @model.new; args_set(:action)
+      end
+      subject { @item.action }
+
+      it { should nil }
+      it { @exist_item.action.should be_a(String) }
+      it { expect { @item.action = 'login' }.to_not raise_error }
+      it { expect { @item.action = 'post.article' }.to_not raise_error }
+      it { expect { @exist_item.action = '5932' }.to raise_error(CafeBlog::Core::ModelOperationError) }
+      it { expect { @model.create(valid_args) }.to raise_error }
+      it { expect { @action_last = @model.insert(valid_args(:action => 'post.comment')) }.to_not raise_error }
+      it { expect { @action_last = @model.insert(valid_args(:action => 'change.password')) }.to change { @action_last }.by(1) }
+      it { expect { @action_last = @model.insert(valid_args(:action => nil)) }.to raise_error(Sequel::Error) }
+      it { expect { @item.action = nil; @item.save }.to raise_error(Sequel::InvalidValue) }
+      it { expect { @item.action = ''; @item.save }.to raise_error(Sequel::ValidationFailed) }
+      it { expect { @item.action = 123456; @item.save }.to raise_error(Sequel::ValidationFailed) }
+      it { expect { @item.action = /regexp/; @item.save }.to raise_error(Sequel::ValidationFailed) }
+      it { expect { @item.action = Time.now; @item.save }.to raise_error(Sequel::ValidationFailed) }
+      it { expect { @item.action = 'invalid action format'; @item.save }.to raise_error(Sequel::ValidationFailed) }
     end
   end
 end
