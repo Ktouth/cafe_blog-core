@@ -4,35 +4,50 @@ describe 'CafeBlog::Core::ModelHelper' do
   include_context 'Environment.setup'
   let(:require_models) { false }
   before :all do
+    @database.create_table! :barbaz do
+      primary_key :key
+      String :name, :null => false
+    end
     @database.create_table! :foobar do
       primary_key :ident
       Integer :count, :null => false, :default => 0
       String :subject
       Time :time, :null => false
+      foreign_key :barbaz_key, :barbaz, :null => true, :default => nil
     end
+    @names = [
+      {:name => 'admin'},
+      {:name => 'example'},
+      {:name => 'test'},
+      {:name => 'whois'},
+    ]
+    @database[:barbaz].insert_multiple(@names)
     @records = [
-      {:count => 156, :subject => 'test', :time => Time.now},
+      {:count => 156, :subject => 'test', :time => Time.now, :barbaz_key => 2},
       {:count => 10, :subject => 'example', :time => Time.now - 15},
-      {:count => 0, :subject => 'foobar', :time => Time.now + 630},
+      {:count => 0, :subject => 'foobar', :time => Time.now + 630, :barbaz_key => 3},
       {:count => 25, :subject => 'sample', :time => Time.now - 893},
       {:count => 81, :subject => 'baz', :time => Time.now - 8888},
-      {:count => 6, :subject => '日本語テキスト', :time => Time.now + 11},
+      {:count => 6, :subject => '日本語テキスト', :time => Time.now + 11, :barbaz_key => 1},
     ]
     @database[:foobar].insert_multiple(@records)
   end
   after :all do
     @database.drop_table :foobar rescue nil
+    @database.drop_table :barbaz rescue nil
   end
   
   shared_context 'sample model' do
     before do
+      @barbaz_model = Class.new(CafeBlog::Core::Model(:barbaz))
       @model = Class.new(CafeBlog::Core::Model(:foobar))
       @model.class_eval do
         set_restricted_columns :time
+        many_to_one :barbaz, :key => :barbaz_key
       end
     end
     after do
-      Sequel::Model::ANONYMOUS_MODEL_CLASSES.delete_if {|k,v| v == @model.superclass }
+      Sequel::Model::ANONYMOUS_MODEL_CLASSES.delete_if {|k,v| v == @model.superclass or v == @barbaz_model.superclass }
     end
   end
 
@@ -61,22 +76,42 @@ describe 'CafeBlog::Core::ModelHelper' do
 
     describe '#set_operation_freeze_columns' do
       before :all do @error = CafeBlog::Core::ModelOperationError end
-      before { @exist = @model[3]; @new_time = @exist.time + 9999 }
+      before do
+        @exist = @model[3]; @new_time = @exist.time + 9999
+        @barbaz = @barbaz_model.order_by(:key).first
+      end
       context '(called no params)' do
         before { @model.set_operation_freeze_columns }
         it { expect { @model.new(:ident => 11, :count => 511, :subject => 'newItem', :time => Time.now - 511111) }.to_not raise_error(@error) }
+        it { expect { @model.new.ident = 999 }.to_not raise_error(@error) }
         it { expect { @exist.ident = 999 }.to raise_error(@error) }
         it { expect { @exist.count = 999 }.to change { @exist.count }.to(999) }
         it { expect { @exist.subject = '999' }.to change { @exist.subject }.to('999') }
+        it { expect { @model.new.time = @new_time }.to_not raise_error(@error) }
         it { expect { @exist.time = @new_time }.to raise_error(@error) }
       end
       context '(called 1 params)' do
         before { @model.set_operation_freeze_columns :ident }
         it { expect { @model.new(:ident => 11, :count => 511, :subject => 'newItem', :time => Time.now - 511111) }.to_not raise_error(@error) }
+        it { expect { @model.new.ident = 999 }.to_not raise_error(@error) }
         it { expect { @exist.ident = 999 }.to raise_error(@error) }
         it { expect { @exist.count = 999 }.to change { @exist.count }.to(999) }
         it { expect { @exist.subject = '999' }.to change { @exist.subject }.to('999') }
+        it { expect { @model.new.time = @new_time }.to_not raise_error(@error) }
         it { expect { @exist.time = @new_time }.to change { @exist.time }.to(@new_time) }
+      end
+      context '(called 1 params / association columns)' do
+        before { @model.set_operation_freeze_columns :barbaz }
+        it { expect { @model.new(:ident => 11, :count => 511, :subject => 'newItem', :time => Time.now - 511111, :barbaz => @barbaz) }.to_not raise_error(@error) }
+        it { expect { @model.new(:ident => 12, :count => 511, :subject => 'newItem2', :time => Time.now - 511111, :barbaz_key => @barbaz.key) }.to_not raise_error(@error) }
+        it { expect { @model.new.barbaz = @barbaz }.to_not raise_error(@error) }
+        it { expect { @exist.barbaz = @barbaz }.to raise_error(@error) }
+        it { expect { @exist.barbaz_key }.to raise_error(NoMethodError) }
+        it { @exist[:barbaz_key].should == 3 }
+        it { @exist.instance_eval { barbaz_key }.should == 3 }
+        it { expect { @exist.barbaz_key = @barbaz.key }.to raise_error(NoMethodError) }
+        it { expect { @exist[:barbaz_key] = @barbaz.key }.to_not raise_error(@error) }
+        it { expect { _key = @barbaz.key; @exist.instance_eval { self.barbaz_key = _key } }.to raise_error(@error) }
       end
       context '(called 3 params)' do
         before { @model.set_operation_freeze_columns :ident, :count, :subject }
@@ -137,7 +172,7 @@ describe 'CafeBlog::Core::ModelHelper' do
         it { expect { @model.remove_column_setters :time }.to change { @item.respond_to?(:time=) }.from(true).to(false) }
       end
     end
-
+      
     describe '#alt_column_accessors' do
       before { @exist = @model[3] }
       context '(called invalid params)' do

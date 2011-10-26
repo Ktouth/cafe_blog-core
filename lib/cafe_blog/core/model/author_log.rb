@@ -11,10 +11,8 @@ module CafeBlog
       class AuthorLog < Core::Model(:author_logs)
         many_to_one :author, :on_update => :cascade, :on_delete => :set_null
 
-        def author=(value); new? ? super(value) : (raise ModelOperationError, '#author is restricted associations.') end
-
         restrict_primary_key
-        set_operation_freeze_columns :id #, :author
+        set_operation_freeze_columns :id, :author
         remove_column_setters :time, :host
 
         [:author_id].uniq.each do |sym|
