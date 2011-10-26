@@ -4,6 +4,7 @@ require 'sequel'
 module CafeBlog
   module Core
     # モデルデータなどのライブラリが利用する設定を保持するクラス
+    # @note データベースが SQLite3 系だった場合、foreign_key 制約の動作を明示的に有効にします
     class Environment
       DefaultSaltSeed = 'this string used for password salt base-string.' # 既定の「パスワードｓａｌｔのベースとなる文字列」
 
@@ -74,6 +75,9 @@ module CafeBlog
       def initialize(opts)
         @database = opts[:database]
         @salt_seed = opts[:salt_seed]
+        if ['Amalgalite', 'SQLite'].any? {|x| @database.class.inspect == "Sequel::#{x}::Database" }
+          @database.run('PRAGMA foreign_keys = true')
+        end 
       end
     end
   end

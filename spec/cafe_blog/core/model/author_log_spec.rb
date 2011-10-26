@@ -172,8 +172,9 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
           @item.author = @dummy
           @item.save
         end
-        after { @dummy.destory rescue nil }
-        pending # it { expect { @dummy.destory rescue nil; @item.reload }.to change { @item.author(true) }.to(nil) }
+        after { @dummy.destroy rescue nil }
+        it { expect { @dummy.destroy rescue nil; @item.reload }.to change { @item.author(true) }.to(nil) }
+        it { expect { @dummy.destroy rescue nil; @item.reload }.to change { @item.instance_eval { author_id } }.to(nil) }
       end
     end
   end

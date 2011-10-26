@@ -9,7 +9,7 @@ module CafeBlog
       # @attr_reader [String] host アクセス元のホスト名
       # @attr [Author] author ログの対象となる筆者情報。ログイン失敗などの筆者情報が不明のものは+nil+となる。新規作成時のみ設定可能
       class AuthorLog < Core::Model(:author_logs)
-        many_to_one :author, :on_update => :cascade, :on_delete => :set_null
+        many_to_one :author
 
         restrict_primary_key
         set_operation_freeze_columns :id, :author
