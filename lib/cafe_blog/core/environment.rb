@@ -49,6 +49,10 @@ module CafeBlog
         # @return [String] ホスト名を返す。ホスト名が取得出来なかった時は「+unknown.host.name+」を返す
         def get_host_address; ENV['REMOTE_HOST'] || 'unknown.host.name' end
 
+        # アクセス者の使用ソフトの情報を取得する
+        # @return [String] ソフト名を返す。ソフト名が取得出来なかった時は「+unknown/0.0+」を返す
+        def get_agent; ENV['HTTP_AGENT'] || 'unknown/0.0' end
+  
         private
   
         # @private

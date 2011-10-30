@@ -141,6 +141,20 @@ describe 'CafeBlog::Core::Environment' do
     end
   end
 
+  describe '.get_agent' do
+    let(:agent) { 'unknown browser/4.5' }
+    before do
+      @agent = agent
+      ENV.should_receive(:[]).with('HTTP_AGENT').and_return { @agent }
+    end
+    subject { CafeBlog::Core::Environment.get_agent }
+    it { should == @agent }
+    context '(not address)' do
+      let(:agent) { nil }
+      it { should == 'unknown/0.0' }
+    end
+  end
+
   describe '#database' do
     include_context('after .setup')
     subject { CafeBlog::Core::Environment.instance.database }
