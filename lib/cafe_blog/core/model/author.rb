@@ -34,11 +34,37 @@ module CafeBlog
           # @param [String] code 認証したい筆者の識別コード
           # @param [String] password 認証用のパスワード
           # @return [Author] 認証に成功した場合は対応する筆者情報を返す。該当する筆者がいない、無効になっている、ログイン権限がない、パスワードが間違っている、および不正な引数を渡された場合は+nil+を返す
+          # @note ログインの成功・失敗・拒否はログとして記録される。パスワードを1日以内に5回以上間違えると、以降のログインを拒否する。
           def authentication(code, password)
-            if code.is_a?(String) and password.is_a?(String) and author = query.filter(:code => code, :loginable => true).first
-              return author if Digest::SHA1.hexdigest([author.code, password, author.password_salt].join(':')) == author.crypted_password
+            if code.is_a?(String) and password.is_a?(String) and author = query[:code => code]
+              check = Digest::SHA1.hexdigest([author.code, password, author.password_salt].join(':')) == author.crypted_password
+              flag = author.enable && author.loginable && !!author.crypted_password
+              if flag and check
+                if get_logs_count(author) < 5
+                  AuthorLog.create(:author => author, :action => 'login', :detail => ('login successed.[agent: %s]' % Environment.get_agent))
+                  return author
+                else
+                  author.loginable = false; author.save
+                  AuthorLog.create(:author => author, :action => 'login.rejected', :detail => ('too much login failure.[author: %s][agent: %s]' % [author.code, Environment.get_agent]))
+                end
+              elsif flag
+                AuthorLog.create(:author => author, :action => 'login.failed', :detail => ('invalid password.[pass: %s][agent: %s]' % [password, Environment.get_agent]))
+              elsif check
+                AuthorLog.create(:author => author, :action => 'login.rejected', :detail => ('author can\'t login.[author: %s][agent: %s]' % [author.code, Environment.get_agent]))
+              else
+                AuthorLog.create(:author => author, :action => 'login.failed', :detail => ('invalid password.[pass: %s][agent: %s]' % [password, Environment.get_agent]))
+              end
+            else
+              AuthorLog.create(:author => nil, :action => 'login.failed', :detail => ('code is not found.[code: %s][pass: %s][agent: %s]' % [code, password, Environment.get_agent]))
             end
             nil
+          end
+
+          private
+
+          def get_logs_count(author, limit = 24)
+            _tm = Time.now - 3600 * limit
+            AuthorLog.filter(:author => author, :action => 'login.failed').filter { time >= _tm }.count
           end
         end
 

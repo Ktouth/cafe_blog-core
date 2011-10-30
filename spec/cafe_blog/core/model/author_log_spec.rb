@@ -8,7 +8,7 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
     end
   end
   def valid_args(args = {})
-    {:time => Time.local(2004, 4, 4, 13, 22, 18), :host => 'ppp09156.host.example.com', :action => 'login'}.merge(args)
+    {:time => Time.local(2004, 4, 4, 13, 22, 18), :host => 'ppp09156.host.example.com', :action => 'login', :detail => 'login successed.'}.merge(args)
   end
 
   before :all do @model = CafeBlog::Core::Model::AuthorLog end
@@ -35,6 +35,7 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
     it { should_not include(:time=) }
     it { should_not include(:host=) }
     it { should_not include(:action=) }
+    it { should_not include(:detail=) }
   end
 
   describe 'instance methods' do
@@ -67,6 +68,8 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
     it { expect { subject.author_id = 2 }.to raise_error(NoMethodError) }
     it { should respond_to(:action) }
     it { should respond_to(:action=) }
+    it { should respond_to(:detail) }
+    it { should respond_to(:detail=) }
     
     context '#id' do
       include_context 'author_logs reset'
@@ -146,7 +149,7 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
       before do
         @author_last = @model.order_by(:id.desc).first.id
         @item = @model.new; args_set(:author)
-        @admin, @example = @author_class[1], @author_class[3]
+        @admin, @example_user = @author_class[1], @author_class[3]
       end
       def _valid_args(author_id = nil); valid_args(:author_id => author_id).tap {|x| x.delete(:time); x.delete(:host) } end
       subject { @item.author }
@@ -159,14 +162,14 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
       it { expect { @model.create(_valid_args(nil)) }.to_not raise_error }
       it { expect { @author_last = @model.insert(valid_args(:author_id => nil)) }.to_not raise_error }
       it { expect { @author_last = @model.insert(valid_args(:author_id => nil)) }.to change { @author_last }.by(1) }
-      it { expect { @author_last = @model.insert(valid_args(:author_id => @example.id)) }.to_not raise_error }
-      it { expect { @author_last = @model.insert(valid_args(:author_id => @example.id)) }.to change { @author_last }.by(1) }
+      it { expect { @author_last = @model.insert(valid_args(:author_id => @example_user.id)) }.to_not raise_error }
+      it { expect { @author_last = @model.insert(valid_args(:author_id => @example_user.id)) }.to change { @author_last }.by(1) }
       it { expect { @item.author = nil; @item.save }.to_not raise_error }
       it { expect { @item.author = nil; @item.save }.to change { @item.id.nil? }.to(false) }
       it { expect { @item.author = 12354648 }.to raise_error }
       it { expect { @item.author = 'new_user001' }.to raise_error }
       it { expect { @item.author = @author_class.new(:code => 'new_user001', :name => '新規ユーザ') }.to raise_error(Sequel::Error) }
-      it { expect { @exist_item.author = @example }.to raise_error(CafeBlog::Core::ModelOperationError) }
+      it { expect { @exist_item.author = @example_user }.to raise_error(CafeBlog::Core::ModelOperationError) }
 
       context '(foreign key on delete)' do
         before do
@@ -204,6 +207,164 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
       it { expect { @item.action = /regexp/; @item.save }.to raise_error(Sequel::ValidationFailed) }
       it { expect { @item.action = Time.now; @item.save }.to raise_error(Sequel::ValidationFailed) }
       it { expect { @item.action = 'invalid action format'; @item.save }.to raise_error(Sequel::ValidationFailed) }
+    end
+
+    context '#detail' do
+      include_context 'author_logs reset'
+      before do
+        @detail_last = @model.order_by(:id.desc).first.id
+        @item = @model.new; args_set(:detail)
+      end
+      subject { @item.detail }
+
+      it { should nil }
+      it { @exist_item.detail.should be_a(String) }
+      it { expect { @item.detail = 'code "unknown" is not found.' }.to_not raise_error }
+      it { expect { @exist_item.detail = 'change detail' }.to raise_error(CafeBlog::Core::ModelOperationError) }
+      it { expect { @model.create(valid_args) }.to raise_error }
+      it { expect { @detail_last = @model.insert(valid_args(:detail => 'ログインに成功しました')) }.to_not raise_error }
+      it { expect { @detail_last = @model.insert(valid_args(:detail => 'パスワードを変更しました')) }.to change { @detail_last }.by(1) }
+      it { expect { @detail_last = @model.insert(valid_args(:detail => nil)) }.to raise_error(Sequel::Error) }
+      it { expect { @item.detail = nil; @item.save }.to raise_error(Sequel::InvalidValue) }
+      it { expect { @item.detail = ''; @item.save }.to raise_error(Sequel::ValidationFailed) }
+    end
+  end
+
+  describe '(log post action)' do
+    include_context 'author_logs reset'
+    before :all do
+      @author_class, @env_class = CafeBlog::Core::Model::Author, CafeBlog::Core::Environment
+      @admin, @example_user = @author_class[:code => 'admin'], @author_class[:code => 'example']
+    end
+    def get_count(id); @model.filter(:author_id => id).count end
+    def get_last(id); @model.filter(:author_id => id).order_by(:time.desc, :id).first end
+    def auth(author, hash = {})
+      hash = {:code => author.code, :password => ExampleDBAuthorsPassword[author.code][:password]}.merge(hash) if author
+      @author_class.authentication(hash[:code], hash[:password])
+    end
+
+    context 'login successed' do
+      before do
+        @agent = 'Example/4.5' 
+        @env_class.should_receive(:get_agent).with(no_args).and_return { @agent }
+        @item = @model.new(:author => @admin, :action => 'login')
+        @model.should_receive(:create).with(an_instance_of(Hash)).and_return do |hash|
+          hash[:author].should == @admin
+          hash[:action].should == 'login'
+          hash[:detail].should match(Regexp.new(Regexp.escape(@agent)))
+          @item.detail = hash[:detail]
+          @item.save
+        end
+        @result = nil
+      end
+      it { expect { @result = auth(@admin) }.to change { @result }.to(@admin) }
+      it { expect { @result = auth(@admin) }.to change { get_count(@admin.id) }.by(1) }
+      it { expect { @result = auth(@admin) }.to change { a = get_last(@admin.id); a ? a.time : nil }.to(@item.time) }
+    end
+
+    context 'login failed(invalid password)' do
+      before do
+        @agent = 'Example/4.0' 
+        @env_class.should_receive(:get_agent).with(no_args).and_return { @agent }
+        @item = @model.new(:author => @admin, :action => 'login.failed')
+        @bad_password = 'badbadbadbad123'
+        @model.should_receive(:create).with(an_instance_of(Hash)).and_return do |hash|
+          hash[:author].should == @admin
+          hash[:action].should == 'login.failed'
+          hash[:detail].should match(Regexp.new(Regexp.escape(@agent)))
+          hash[:detail].should match(Regexp.new(Regexp.escape(@bad_password)))
+          hash[:detail].should match(Regexp.new(Regexp.escape('invalid password')))
+          @item.detail = hash[:detail]
+          @item.save
+        end
+        @result = nil
+      end
+      it { expect { @result = auth(@admin, :password => @bad_password) }.to_not change { @result } }
+      it { expect { @result = auth(@admin, :password => @bad_password) }.to change { get_count(@admin.id) }.by(1) }
+      it { expect { @result = auth(@admin, :password => @bad_password) }.to change { a = get_last(@admin.id); a ? a.time : nil }.to(@item.time) }
+    end
+
+    context 'login failed(unknown code)' do
+      before do
+        @agent = 'Example/4.0' 
+        @env_class.should_receive(:get_agent).with(no_args).and_return { @agent }
+        @item = @model.new(:author => nil, :action => 'login.failed')
+        @user = 'unknown'
+        @password = ExampleDBAuthorsPassword[@admin.code][:password]
+        @model.should_receive(:create).with(an_instance_of(Hash)).and_return do |hash|
+          hash[:author].should be_nil
+          hash[:action].should == 'login.failed'
+          hash[:detail].should match(Regexp.new(Regexp.escape(@agent)))
+          hash[:detail].should match(Regexp.new(Regexp.escape(@user)))
+          hash[:detail].should match(Regexp.new(Regexp.escape(@password)))
+          hash[:detail].should match(Regexp.new(Regexp.escape('code is not found')))
+          @item.detail = hash[:detail]
+          @item.save
+        end
+        @result = nil
+      end
+      it { expect { @result = auth(nil, :code => @user, :password => @password) }.to_not change { @result } }
+      it { expect { @result = auth(nil, :code => @user, :password => @password) }.to change { get_count(nil) }.by(1) }
+      it { expect { @result = auth(nil, :code => @user, :password => @password) }.to change { a = get_last(nil); a ? a.time : nil }.to(@item.time) }
+    end
+
+    context 'login rejected(disable loginable)' do
+      before do
+        @agent = 'Example/4.0' 
+        @env_class.should_receive(:get_agent).with(no_args).and_return { @agent }
+        @locked_user = @author_class[:code => 'locked_user']
+        @item = @model.new(:author => @locked_user, :action => 'login')
+        @user = @locked_user.code
+        @password = ExampleDBAuthorsPassword[@locked_user.code][:password]
+        @model.should_receive(:create).with(an_instance_of(Hash)).and_return do |hash|
+          hash[:author].should be_a(@author_class)
+          hash[:action].should == 'login.rejected'
+          hash[:detail].should match(Regexp.new(Regexp.escape(@agent)))
+          hash[:detail].should match(Regexp.new(Regexp.escape(@user)))
+          hash[:detail].should match(Regexp.new(Regexp.escape('author can\'t login')))
+          @item.detail = hash[:detail]
+          @item.save
+        end
+        @result = nil
+      end
+      it { expect { @result = auth(@locked_user) }.to_not change { @result } }
+      it { expect { @result = auth(@locked_user) }.to change { get_count(@locked_user.id) }.by(1) }
+      it { expect { @result = auth(@locked_user) }.to change { a = get_last(@locked_user.id); a ? a.time : nil }.to(@item.time) }
+    end
+
+    context 'login rejected(too much login failure)' do
+      before do
+        _tm = Time.now
+        [12030, 10150, 5530, 1331, 310].each do |ts|
+          log = @model.new(:author => @example_user, :action => 'login.failed', :detail => 'example detail')
+          log.values[:time] = _tm - ts
+          log.save 
+        end
+        @model.filter(:author => @example_user).filter { time >= (_tm - 60 * 60 * 24) }.count.should >= 5
+
+        @agent = 'Example/4.0' 
+        @env_class.should_receive(:get_agent).with(no_args).and_return { @agent }
+        @item = @model.new(:author => @example_user, :action => 'login')
+        @user = @example_user.code
+        @password = ExampleDBAuthorsPassword[@example_user.code][:password]
+        @model.should_receive(:create).with(an_instance_of(Hash)).and_return do |hash|
+          hash[:author].should be_a(@author_class)
+          hash[:action].should == 'login.rejected'
+          hash[:detail].should match(Regexp.new(Regexp.escape(@agent)))
+          hash[:detail].should match(Regexp.new(Regexp.escape(@user)))
+          hash[:detail].should match(Regexp.new(Regexp.escape('too much login failure')))
+          @item.detail = hash[:detail]
+          @item.save
+        end
+        @result = nil
+      end
+      after do
+        @example_user.loginable = true; @example_user.save
+      end
+      it { expect { @result = auth(@example_user) }.to_not change { @result } }
+      it { expect { @result = auth(@example_user) }.to change { get_count(@example_user.id) }.by(1) }
+      it { expect { @result = auth(@example_user) }.to change { a = get_last(@example_user.id); a ? a.time : nil }.to(@item.time) }
+      it { expect { @result = auth(@example_user) }.to change { @example_user.reload; @example_user.loginable }.from(true).to(false) }
     end
   end
 end
