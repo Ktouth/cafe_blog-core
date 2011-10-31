@@ -1,7 +1,7 @@
-# @private
-# @note sequel_notnaughty gem が提供する UniquenessValidation クラスのパッチコード
 # @author K.Ktouth
+# @note not_naughty および sequel_notnaughty gem が提供する検証機能のパッチコード
 module NotNaughty # :nodoc:
+  # @note sequel_notnaughty gem が提供する UniquenessValidation クラスのパッチコード
   class UniquenessValidation # :nodoc:
     private
 
