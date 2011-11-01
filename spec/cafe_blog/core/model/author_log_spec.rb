@@ -264,12 +264,15 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
 
     context 'login failed(invalid password)' do
       before do
+        @login_user = @admin
+
         @agent = 'Example/4.0' 
         @env_class.should_receive(:get_agent).with(no_args).and_return { @agent }
-        @item = @model.new(:author => @admin, :action => 'login.failed')
+        @item = @model.new(:author => @login_user, :action => 'login.failed')
         @bad_password = 'badbadbadbad123'
         @model.should_receive(:create).with(an_instance_of(Hash)).and_return do |hash|
-          hash[:author].should == @admin
+          hash[:author].should be_a(@author_class)
+          hash[:author].id == @login_user.id
           hash[:action].should == 'login.failed'
           hash[:detail].should match(Regexp.new(Regexp.escape(@agent)))
           hash[:detail].should match(Regexp.new(Regexp.escape(@bad_password)))
@@ -283,6 +286,58 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
       it { expect { @result = auth(@admin, :password => @bad_password) }.to change { get_count(@admin.id) }.by(1) }
       it { expect { @result = auth(@admin, :password => @bad_password) }.to change { a = get_last(@admin.id); a ? a.time : nil }.to(@item.time) }
     end
+
+    context 'login rejected(change not loginable. too much login failure)' do
+      let(:log_time_base) { Time.now - 3600 * 12 }
+      before do
+        @login_user = @example_user
+
+        @model.filter(:author => @login_user).destroy
+        @example_user.loginable.should be_true
+        [18623, 14302, 360, -4598].each do |l|
+          @model.new(:author => @login_user, :action => 'login.failed', :detail => 'example login failed message') do |t|
+            t.values[:time] = log_time_base - l 
+          end.save
+        end
+        @model.filter(:author => @login_user).count.should == 4
+
+        @agent = 'Example/4.0' 
+        @env_class.should_receive(:get_agent).with(no_args).and_return { @agent }
+        @item = @model.new(:author => @login_user, :action => 'login.failed')
+        @bad_password = 'badbadbadbad123'
+        @model.should_receive(:create).with(an_instance_of(Hash)).and_return do |hash|
+          hash[:author].should be_a(@author_class)
+          hash[:author].id == @login_user.id
+          hash[:action].should == 'login.failed'
+          hash[:detail].should match(Regexp.new(Regexp.escape(@agent)))
+          hash[:detail].should match(Regexp.new(Regexp.escape(@bad_password)))
+          hash[:detail].should match(Regexp.new(Regexp.escape('invalid password')))
+          @item.detail = hash[:detail]
+          @item.save
+        end
+
+        @env_class.should_receive(:get_agent).with(no_args).and_return { @agent }
+        @ritem = @model.new(:author => @login_user, :action => 'login.rejected')
+        @model.should_receive(:create).with(an_instance_of(Hash)).and_return do |hash|
+          hash[:author].should be_a(@author_class)
+          hash[:author].id == @ritem.author.id
+          hash[:action].should == 'login.rejected'
+          hash[:detail].should match(Regexp.new(Regexp.escape(@agent)))
+          hash[:detail].should match(Regexp.new(Regexp.escape(@ritem.author.code)))
+          hash[:detail].should match(Regexp.new(Regexp.escape('too much login failure')))
+          @ritem.detail = hash[:detail]
+          @ritem.save
+        end
+        @result = nil
+      end
+      after do
+        @example_user.loginable = true; @example_user.save
+      end
+      it { expect { @result = auth(@example_user, :password => @bad_password) }.to_not change { @result } }
+      it { expect { @result = auth(@example_user, :password => @bad_password) }.to change { get_count(@example_user.id) }.by(2) }
+      it { expect { @result = auth(@example_user, :password => @bad_password) }.to change { a = get_last(@example_user.id); a ? a.time : nil }.to(@ritem.time) }
+      it { expect { @result = auth(@example_user, :password => @bad_password) }.to change { @example_user.reload; @example_user.loginable }.from(true).to(false) }
+    end      
 
     context 'login failed(unknown code)' do
       before do
@@ -330,41 +385,6 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
       it { expect { @result = auth(@locked_user) }.to_not change { @result } }
       it { expect { @result = auth(@locked_user) }.to change { get_count(@locked_user.id) }.by(1) }
       it { expect { @result = auth(@locked_user) }.to change { a = get_last(@locked_user.id); a ? a.time : nil }.to(@item.time) }
-    end
-
-    context 'login rejected(too much login failure)' do
-      before do
-        _tm = Time.now
-        [12030, 10150, 5530, 1331, 310].each do |ts|
-          log = @model.new(:author => @example_user, :action => 'login.failed', :detail => 'example detail')
-          log.values[:time] = _tm - ts
-          log.save 
-        end
-        @model.filter(:author => @example_user).filter { time >= (_tm - 60 * 60 * 24) }.count.should >= 5
-
-        @agent = 'Example/4.0' 
-        @env_class.should_receive(:get_agent).with(no_args).and_return { @agent }
-        @item = @model.new(:author => @example_user, :action => 'login')
-        @user = @example_user.code
-        @password = ExampleDBAuthorsPassword[@example_user.code][:password]
-        @model.should_receive(:create).with(an_instance_of(Hash)).and_return do |hash|
-          hash[:author].should be_a(@author_class)
-          hash[:action].should == 'login.rejected'
-          hash[:detail].should match(Regexp.new(Regexp.escape(@agent)))
-          hash[:detail].should match(Regexp.new(Regexp.escape(@user)))
-          hash[:detail].should match(Regexp.new(Regexp.escape('too much login failure')))
-          @item.detail = hash[:detail]
-          @item.save
-        end
-        @result = nil
-      end
-      after do
-        @example_user.loginable = true; @example_user.save
-      end
-      it { expect { @result = auth(@example_user) }.to_not change { @result } }
-      it { expect { @result = auth(@example_user) }.to change { get_count(@example_user.id) }.by(1) }
-      it { expect { @result = auth(@example_user) }.to change { a = get_last(@example_user.id); a ? a.time : nil }.to(@item.time) }
-      it { expect { @result = auth(@example_user) }.to change { @example_user.reload; @example_user.loginable }.from(true).to(false) }
     end
   end
 end

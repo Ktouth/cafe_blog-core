@@ -40,15 +40,14 @@ module CafeBlog
               check = Digest::SHA1.hexdigest([author.code, password, author.password_salt].join(':')) == author.crypted_password
               flag = author.enable && author.loginable && !!author.crypted_password
               if flag and check
-                if get_logs_count(author) < 5
-                  AuthorLog.create(:author => author, :action => 'login', :detail => ('login successed.[agent: %s]' % Environment.get_agent))
-                  return author
-                else
+                AuthorLog.create(:author => author, :action => 'login', :detail => ('login successed.[agent: %s]' % Environment.get_agent))
+                return author
+              elsif flag
+                AuthorLog.create(:author => author, :action => 'login.failed', :detail => ('invalid password.[pass: %s][agent: %s]' % [password, Environment.get_agent]))
+                if get_logs_count(author) >= 5
                   author.loginable = false; author.save
                   AuthorLog.create(:author => author, :action => 'login.rejected', :detail => ('too much login failure.[author: %s][agent: %s]' % [author.code, Environment.get_agent]))
                 end
-              elsif flag
-                AuthorLog.create(:author => author, :action => 'login.failed', :detail => ('invalid password.[pass: %s][agent: %s]' % [password, Environment.get_agent]))
               elsif check
                 AuthorLog.create(:author => author, :action => 'login.rejected', :detail => ('author can\'t login.[author: %s][agent: %s]' % [author.code, Environment.get_agent]))
               else
