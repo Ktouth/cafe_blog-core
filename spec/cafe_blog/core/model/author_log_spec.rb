@@ -242,44 +242,45 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
       hash = {:code => author.code, :password => ExampleDBAuthorsPassword[author.code][:password]}.merge(hash) if author
       @author_class.authentication(hash[:code], hash[:password])
     end
+    
+    def mock_create(args)
+      args = {:action => 'login.failed', :agent => 'Example/4.7', :detail => []}.merge(args)
+      args[:detail].unshift args[:agent] if args[:agent] and !args[:detail].include?(args[:agent])
+      @env_class.should_receive(:get_agent).with(no_args).and_return { args[:agent] }
+      _item = @model.new(:author => args[:author], :action => args[:action])
+      _item.values[:time] = args[:time] if args[:time].is_a?(Time)
+      @model.should_receive(:create).with(an_instance_of(Hash)).and_return do |hash|
+        if args[:author]
+          hash[:author].should be_a(@author_class)
+          hash[:author].id.should == args[:author].id
+        else
+          hash[:author].should be_nil
+        end
+        hash[:action].should == args[:action]
+        args[:detail].each do |d|
+          hash[:detail].should match(Regexp.new(Regexp.escape(d)))
+        end
+        _item.detail = hash[:detail]
+        _item.save
+      end
+      _item
+    end
 
     context 'login successed' do
       before do
-        @agent = 'Example/4.5' 
-        @env_class.should_receive(:get_agent).with(no_args).and_return { @agent }
-        @item = @model.new(:author => @admin, :action => 'login')
-        @model.should_receive(:create).with(an_instance_of(Hash)).and_return do |hash|
-          hash[:author].should == @admin
-          hash[:action].should == 'login'
-          hash[:detail].should match(Regexp.new(Regexp.escape(@agent)))
-          @item.detail = hash[:detail]
-          @item.save
-        end
+        _agent, @time = 'Example/4.5', get_last(@admin.id).time + 1092
+        @item = mock_create(:author => @admin, :action => 'login', :agent => _agent, :time => @time, :detail => ['login successed'])
         @result = nil
       end
       it { expect { @result = auth(@admin) }.to change { @result }.to(@admin) }
       it { expect { @result = auth(@admin) }.to change { get_count(@admin.id) }.by(1) }
-      it { expect { @result = auth(@admin) }.to change { a = get_last(@admin.id); a ? a.time : nil }.to(@item.time) }
+      it { expect { @result = auth(@admin) }.to change { a = get_last(@admin.id); a ? a.time : nil }.to(@time) }
     end
 
     context 'login failed(invalid password)' do
       before do
-        @login_user = @admin
-
-        @agent = 'Example/4.0' 
-        @env_class.should_receive(:get_agent).with(no_args).and_return { @agent }
-        @item = @model.new(:author => @login_user, :action => 'login.failed')
         @bad_password = 'badbadbadbad123'
-        @model.should_receive(:create).with(an_instance_of(Hash)).and_return do |hash|
-          hash[:author].should be_a(@author_class)
-          hash[:author].id == @login_user.id
-          hash[:action].should == 'login.failed'
-          hash[:detail].should match(Regexp.new(Regexp.escape(@agent)))
-          hash[:detail].should match(Regexp.new(Regexp.escape(@bad_password)))
-          hash[:detail].should match(Regexp.new(Regexp.escape('invalid password')))
-          @item.detail = hash[:detail]
-          @item.save
-        end
+        @item = mock_create(:author => @admin, :action => 'login.failed', :detail => [@bad_password, 'invalid password'])
         @result = nil
       end
       it { expect { @result = auth(@admin, :password => @bad_password) }.to_not change { @result } }
@@ -290,44 +291,19 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
     context 'login rejected(change not loginable. too much login failure)' do
       let(:log_time_base) { Time.now - 3600 * 12 }
       before do
-        @login_user = @example_user
-
-        @model.filter(:author => @login_user).destroy
+        @model.filter(:author => @example_user).destroy
         @example_user.loginable.should be_true
         [18623, 14302, 360, -4598].each do |l|
-          @model.new(:author => @login_user, :action => 'login.failed', :detail => 'example login failed message') do |t|
-            t.values[:time] = log_time_base - l 
-          end.save
+          t = @model.new(:author => @example_user, :action => 'login.failed', :detail => 'example login failed message')
+          t.values[:time] = log_time_base - l 
+          t.save
         end
-        @model.filter(:author => @login_user).count.should == 4
+        @model.filter(:author => @example_user).count.should == 4
 
-        @agent = 'Example/4.0' 
-        @env_class.should_receive(:get_agent).with(no_args).and_return { @agent }
-        @item = @model.new(:author => @login_user, :action => 'login.failed')
         @bad_password = 'badbadbadbad123'
-        @model.should_receive(:create).with(an_instance_of(Hash)).and_return do |hash|
-          hash[:author].should be_a(@author_class)
-          hash[:author].id == @login_user.id
-          hash[:action].should == 'login.failed'
-          hash[:detail].should match(Regexp.new(Regexp.escape(@agent)))
-          hash[:detail].should match(Regexp.new(Regexp.escape(@bad_password)))
-          hash[:detail].should match(Regexp.new(Regexp.escape('invalid password')))
-          @item.detail = hash[:detail]
-          @item.save
-        end
+        @item = mock_create(:author => @example_user, :action => 'login.failed', :detail => [@bad_password, 'invalid password'])
+        @ritem = mock_create(:author => @example_user, :action => 'login.rejected', :detail => [@example_user.code, 'too much login failure'])
 
-        @env_class.should_receive(:get_agent).with(no_args).and_return { @agent }
-        @ritem = @model.new(:author => @login_user, :action => 'login.rejected')
-        @model.should_receive(:create).with(an_instance_of(Hash)).and_return do |hash|
-          hash[:author].should be_a(@author_class)
-          hash[:author].id == @ritem.author.id
-          hash[:action].should == 'login.rejected'
-          hash[:detail].should match(Regexp.new(Regexp.escape(@agent)))
-          hash[:detail].should match(Regexp.new(Regexp.escape(@ritem.author.code)))
-          hash[:detail].should match(Regexp.new(Regexp.escape('too much login failure')))
-          @ritem.detail = hash[:detail]
-          @ritem.save
-        end
         @result = nil
       end
       after do
@@ -341,21 +317,8 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
 
     context 'login failed(unknown code)' do
       before do
-        @agent = 'Example/4.0' 
-        @env_class.should_receive(:get_agent).with(no_args).and_return { @agent }
-        @item = @model.new(:author => nil, :action => 'login.failed')
-        @user = 'unknown'
-        @password = ExampleDBAuthorsPassword[@admin.code][:password]
-        @model.should_receive(:create).with(an_instance_of(Hash)).and_return do |hash|
-          hash[:author].should be_nil
-          hash[:action].should == 'login.failed'
-          hash[:detail].should match(Regexp.new(Regexp.escape(@agent)))
-          hash[:detail].should match(Regexp.new(Regexp.escape(@user)))
-          hash[:detail].should match(Regexp.new(Regexp.escape(@password)))
-          hash[:detail].should match(Regexp.new(Regexp.escape('code is not found')))
-          @item.detail = hash[:detail]
-          @item.save
-        end
+        @user, @password = 'unknown', ExampleDBAuthorsPassword[@admin.code][:password]
+        @item = mock_create(:author => nil, :action => 'login.failed', :detail => [@user, @password, 'code is not found'])
         @result = nil
       end
       it { expect { @result = auth(nil, :code => @user, :password => @password) }.to_not change { @result } }
@@ -365,21 +328,8 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
 
     context 'login rejected(disable loginable)' do
       before do
-        @agent = 'Example/4.0' 
-        @env_class.should_receive(:get_agent).with(no_args).and_return { @agent }
         @locked_user = @author_class[:code => 'locked_user']
-        @item = @model.new(:author => @locked_user, :action => 'login')
-        @user = @locked_user.code
-        @password = ExampleDBAuthorsPassword[@locked_user.code][:password]
-        @model.should_receive(:create).with(an_instance_of(Hash)).and_return do |hash|
-          hash[:author].should be_a(@author_class)
-          hash[:action].should == 'login.rejected'
-          hash[:detail].should match(Regexp.new(Regexp.escape(@agent)))
-          hash[:detail].should match(Regexp.new(Regexp.escape(@user)))
-          hash[:detail].should match(Regexp.new(Regexp.escape('author can\'t login')))
-          @item.detail = hash[:detail]
-          @item.save
-        end
+        @item = mock_create(:author => @locked_user, :action => 'login.rejected', :detail => [@locked_user.code, 'author can\'t login'])
         @result = nil
       end
       it { expect { @result = auth(@locked_user) }.to_not change { @result } }
