@@ -246,10 +246,10 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
     def mock_create(args)
       args = {:action => 'login.failed', :agent => 'Example/4.7', :detail => []}.merge(args)
       args[:detail].unshift args[:agent] if args[:agent] and !args[:detail].include?(args[:agent])
-      @env_class.should_receive(:get_agent).with(no_args).and_return { args[:agent] }
+      @env_class.should_receive(:get_agent).with(no_args).once.and_return { args[:agent] }
       _item = @model.new(:author => args[:author], :action => args[:action])
       _item.values[:time] = args[:time] if args[:time].is_a?(Time)
-      @model.should_receive(:create).with(an_instance_of(Hash)).and_return do |hash|
+      @model.should_receive(:create).with(an_instance_of(Hash)).once.and_return do |hash|
         if args[:author]
           hash[:author].should be_a(@author_class)
           hash[:author].id.should == args[:author].id
@@ -313,6 +313,37 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
       it { expect { @result = auth(@example_user, :password => @bad_password) }.to change { get_count(@example_user.id) }.by(2) }
       it { expect { @result = auth(@example_user, :password => @bad_password) }.to change { a = get_last(@example_user.id); a ? a.time : nil }.to(@ritem.time) }
       it { expect { @result = auth(@example_user, :password => @bad_password) }.to change { @example_user.reload; @example_user.loginable }.from(true).to(false) }
+    end      
+
+    context 'login rejected(change not loginable. too much login failure)' do
+      let(:log_time_base) { Time.now - 3600 * 12 }
+      before do
+        @model.filter(:author => @example_user).destroy
+        @example_user.loginable.should be_true
+        [84120, 761252, 66420, 48200, 18623, 14302, -4598].each do |l|
+          t = @model.new(:author => @example_user, :action => 'login.failed', :detail => 'example login failed message')
+          t.values[:time] = log_time_base - l 
+          t.save
+        end
+        [32000, 4650].each do |l|
+          t = @model.new(:author => @example_user, :action => 'login', :detail => 'example login successed message')
+          t.values[:time] = log_time_base - l 
+          t.save
+        end
+        @model.filter(:author => @example_user).count.should == 9
+
+        @bad_password = 'badbadbadbad123'
+        @item = mock_create(:author => @example_user, :action => 'login.failed', :detail => [@bad_password, 'invalid password'])
+
+        @result = nil
+      end
+      after do
+        @example_user.loginable = true; @example_user.save
+      end
+      it { expect { @result = auth(@example_user, :password => @bad_password) }.to_not change { @result } }
+      it { expect { @result = auth(@example_user, :password => @bad_password) }.to change { get_count(@example_user.id) }.by(1) }
+      it { expect { @result = auth(@example_user, :password => @bad_password) }.to change { a = get_last(@example_user.id); a ? a.time : nil }.to(@item.time) }
+      it { expect { @result = auth(@example_user, :password => @bad_password) }.to_not change { @example_user.reload; @example_user.loginable }.from(true).to(false) }
     end      
 
     context 'login failed(unknown code)' do
