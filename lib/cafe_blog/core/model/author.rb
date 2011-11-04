@@ -86,6 +86,11 @@ module CafeBlog
           [:@password, :@password_confirmation].each {|sym| remove_instance_variable(sym) rescue nil }
           super 
         end
+        
+        def after_create
+          super
+          AuthorLog.create(:author => self, :action => 'author.create', :detail => 'created author.[code: %s][name: %s][agent: %s]' % [code, name, Environment.get_agent])
+        end
       end
     end
   end

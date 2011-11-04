@@ -253,6 +253,10 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
         if args[:author]
           hash[:author].should be_a(@author_class)
           hash[:author].id.should == args[:author].id
+        elsif args[:new_author]
+          hash[:author].should be_a(@author_class)
+          hash[:author].code.should == args[:new_author]
+          _item.author = hash[:author]
         else
           hash[:author].should be_nil
         end
@@ -334,6 +338,7 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
 
         @bad_password = 'badbadbadbad123'
         @item = mock_create(:author => @example_user, :action => 'login.failed', :detail => [@bad_password, 'invalid password'])
+        #@ritem = mock_create(:author => @example_user, :action => 'login.rejected', :detail => [@example_user.code, 'too much login failure'])
 
         @result = nil
       end
@@ -366,6 +371,35 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
       it { expect { @result = auth(@locked_user) }.to_not change { @result } }
       it { expect { @result = auth(@locked_user) }.to change { get_count(@locked_user.id) }.by(1) }
       it { expect { @result = auth(@locked_user) }.to change { a = get_last(@locked_user.id); a ? a.time : nil }.to(@item.time) }
+    end
+
+    def create_dummy
+      codes, names = @author_class.map {|x| [x.code, x.name] }.transpose
+      func = lambda do |x, ary|
+        c, i = nil, 0
+        loop do
+          i += 1
+          c = "%s%03d" % [x, i]
+          break unless ary.include?(c)
+        end
+        c
+      end
+      [func['code', codes], func['仮の筆者', names]]
+    end
+
+    context 'author created log' do
+      before do
+        @code, @name = create_dummy
+        @author = @author_class.new(:code => @code, :name => @name)
+        @item = mock_create(:new_author => @code, :action => 'author.create', :detail => [@code, @name, 'created author'])
+      end
+      after do
+        @author.destroy if @author
+      end
+      it { expect { @author.save }.to change { @author.new? }.from(true).to(false) }
+      it { expect { @author.save }.to change { @author.id }.from(nil) }
+      it { expect { @author.save }.to change { @author.new? ? 0 : get_count(@author.id) }.by(1) }
+      it { expect { @author.save }.to change { a = get_last(@author.id); (a && !@author.new?) ? a.time : nil }.to(@item.time) }
     end
   end
 end
