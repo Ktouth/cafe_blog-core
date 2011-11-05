@@ -96,6 +96,10 @@ module CafeBlog
           super
           AuthorLog.create(:author => self, :action => 'author.update', :detail => 'updated author.[code: %s][name: %s][agent: %s]' % [code, name, Environment.get_agent])
         end
+        def after_destroy
+          super
+          AuthorLog.create(:author => nil, :action => 'author.delete', :detail => 'deleted author.[id: %d][code: %s][name: %s][agent :%s]' % [id, code, name, Environment.get_agent])
+        end
       end
     end
   end

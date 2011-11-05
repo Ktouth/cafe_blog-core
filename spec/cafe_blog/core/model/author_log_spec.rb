@@ -393,7 +393,7 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
         @item = mock_create(:new_author => @code, :action => 'author.create', :detail => [@code, @name, 'created author'])
       end
       after do
-        @author.destroy if @author
+        @author.delete if @author
       end
       it { expect { @author.save }.to change { @author.new? }.from(true).to(false) }
       it { expect { @author.save }.to change { @author.id }.from(nil) }
@@ -409,11 +409,28 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
         @author.mailto = 'example@foo.bar'
       end
       after do
-        @author.destroy if @author
+        @author.delete if @author
       end
       it { expect { @author.save }.to change { @author.modified? }.from(true).to(false) }
       it { expect { @author.save }.to change { get_count(@author.id) }.by(1) }
       it { expect { @author.save }.to change { a = get_last(@author.id); a ? a.time : nil }.to(@item.time) }
+    end
+
+    context 'author deleted log' do
+      before do
+        code, name = create_dummy
+        @author = @author_class.create(:code => code, :name => name)
+        @author.update(:mailto => 'example@foo.bar')
+        @author.update(:mailto => 'simple@foo.bar')
+        @author.update(:mailto => 'baz@foo.bar')
+        @logs = @model.filter(:author => @author).order_by(:id).all
+        @item = mock_create(:author => nil, :action => 'author.delete', :detail => [@author.id.to_s, code, name, 'deleted author'])
+      end
+      it { expect { @author.destroy }.to change { @author.exists? }.from(true).to(false) }
+      it { expect { @author.destroy }.to change { get_count(@author.id) }.to(0) }
+      it { expect { @author.destroy }.to change { get_count(nil) }.by(@logs.count + 1) }
+      it { expect { @author.destroy }.to change { @logs.map {|x| x.reload; x[:author_id] } }.to(@logs.map { nil } ) }
+      it { expect { @author.destroy }.to change { a = get_last(nil); a ? a.time : nil }.to(@item.time) }
     end
   end
 end
