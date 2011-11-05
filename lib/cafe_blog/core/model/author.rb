@@ -45,7 +45,8 @@ module CafeBlog
               elsif flag
                 AuthorLog.create(:author => author, :action => 'login.failed', :detail => ('invalid password.[pass: %s][agent: %s]' % [password, Environment.get_agent]))
                 if get_logs_count(author) >= 5
-                  author.loginable = false; author.save
+                  Author.dataset.filter(:id => author.id).update(:loginable => false)
+                  author.reload
                   AuthorLog.create(:author => author, :action => 'login.rejected', :detail => ('too much login failure.[author: %s][agent: %s]' % [author.code, Environment.get_agent]))
                 end
               elsif check
@@ -90,6 +91,10 @@ module CafeBlog
         def after_create
           super
           AuthorLog.create(:author => self, :action => 'author.create', :detail => 'created author.[code: %s][name: %s][agent: %s]' % [code, name, Environment.get_agent])
+        end
+        def after_update
+          super
+          AuthorLog.create(:author => self, :action => 'author.update', :detail => 'updated author.[code: %s][name: %s][agent: %s]' % [code, name, Environment.get_agent])
         end
       end
     end

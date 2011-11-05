@@ -311,7 +311,7 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
         @result = nil
       end
       after do
-        @example_user.loginable = true; @example_user.save
+        @author_class.dataset.filter(:id => @example_user.id).update(:loginable => true); @example_user.reload
       end
       it { expect { @result = auth(@example_user, :password => @bad_password) }.to_not change { @result } }
       it { expect { @result = auth(@example_user, :password => @bad_password) }.to change { get_count(@example_user.id) }.by(2) }
@@ -338,12 +338,11 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
 
         @bad_password = 'badbadbadbad123'
         @item = mock_create(:author => @example_user, :action => 'login.failed', :detail => [@bad_password, 'invalid password'])
-        #@ritem = mock_create(:author => @example_user, :action => 'login.rejected', :detail => [@example_user.code, 'too much login failure'])
 
         @result = nil
       end
       after do
-        @example_user.loginable = true; @example_user.save
+        @author_class.dataset.filter(:id => @example_user.id).update(:loginable => true); @example_user.reload
       end
       it { expect { @result = auth(@example_user, :password => @bad_password) }.to_not change { @result } }
       it { expect { @result = auth(@example_user, :password => @bad_password) }.to change { get_count(@example_user.id) }.by(1) }
@@ -400,6 +399,21 @@ describe 'CafeBlog::Core::Model::AuthorLog' do
       it { expect { @author.save }.to change { @author.id }.from(nil) }
       it { expect { @author.save }.to change { @author.new? ? 0 : get_count(@author.id) }.by(1) }
       it { expect { @author.save }.to change { a = get_last(@author.id); (a && !@author.new?) ? a.time : nil }.to(@item.time) }
+    end
+
+    context 'author updated log' do
+      before do
+        code, name = create_dummy
+        @author = @author_class.create(:code => code, :name => name)
+        @item = mock_create(:author => @author, :action => 'author.update', :detail => [code, name, 'updated author'])
+        @author.mailto = 'example@foo.bar'
+      end
+      after do
+        @author.destroy if @author
+      end
+      it { expect { @author.save }.to change { @author.modified? }.from(true).to(false) }
+      it { expect { @author.save }.to change { get_count(@author.id) }.by(1) }
+      it { expect { @author.save }.to change { a = get_last(@author.id); a ? a.time : nil }.to(@item.time) }
     end
   end
 end
