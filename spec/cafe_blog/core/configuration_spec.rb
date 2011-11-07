@@ -5,6 +5,8 @@ describe 'CafeBlog::Core::Configuration' do
   it { should be_a(Class) }
 end
 
+module TempNamespace; end
+
 describe 'CafeBlog::Core.Configuration' do
   before :all do
     @valid_key = 'sample'
@@ -46,13 +48,19 @@ describe 'CafeBlog::Core.Configuration' do
     it { @class.instance.should == @class.instance }
   end
 
-  describe 'getter and setter methods' do
+  describe 'instance methods' do
     before :all do
-      @class = CafeBlog::Core::Configuration(@valid_key, @valid_values)
+      @class = TempNamespace.const_set('ExampleConfig', CafeBlog::Core::Configuration(@valid_key, @valid_values))
+    end
+    after :all do
+      TempNamespace.module_eval { remove_const('ExampleConfig') }
     end
     subject { @class.instance }
-    it { @valid_values.keys.all? {|x| subject.respond_to? x }.should be_true }
-    it { @valid_values.keys.all? {|x| subject.respond_to?("#{x}=") }.should be_true }
-    it { @valid_values.all? {|k, v| subject.send(k) == (v.is_a?(Proc) ? v.call : v) }.should be_true }
+
+    describe 'getter and setter methods' do
+      it { @valid_values.keys.all? {|x| subject.respond_to? x }.should be_true }
+      it { @valid_values.keys.all? {|x| subject.respond_to?("#{x}=") }.should be_true }
+      it { @valid_values.all? {|k, v| subject.send(k) == (v.is_a?(Proc) ? v.call : v) }.should be_true }
+    end
   end
 end
