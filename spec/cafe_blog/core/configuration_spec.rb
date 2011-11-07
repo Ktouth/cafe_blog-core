@@ -8,6 +8,12 @@ end
 module TempNamespace; end
 
 describe 'CafeBlog::Core.Configuration' do
+  include_context 'Environment.setup'
+  shared_context 'configurations reset' do
+    before :all do
+      database_resetdata(@database)
+    end
+  end
   before :all do
     @valid_key = 'sample'
     @valid_values = {:foo => true, :bar => 'test', :baz => proc { Hash.new } }
@@ -68,5 +74,22 @@ describe 'CafeBlog::Core.Configuration' do
       subject { @class.instance.inspect }
       it { should == '#<%s @values=%s>' % [@class.name, @class.instance.instance_variable_get(:@values).inspect]}      
     end
+  end
+end
+
+describe 'migration: 003_create_configurations' do
+  context 'migration.up' do
+    include_context 'Environment.setup'
+    let(:database_migration_params) { {:target => 3} }
+    let(:require_models) { false }
+    specify 'version is 3' do @database[:schema_info].first[:version].should == 3 end
+    specify 'created configurations' do @database.tables.should be_include(:configurations) end
+  end
+  context 'migration.down' do
+    include_context 'Environment.setup'
+    let(:require_models) { false }
+    before :all do database_demigrate(@database, 0) end
+
+    specify 'dropped configurations' do @database.tables.should_not be_include(:configurations) end
   end
 end

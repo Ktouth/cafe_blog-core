@@ -1,5 +1,5 @@
-ExampleDBDataTables = [:authors, :author_logs]
-ExampleDBSeqenceReset = {:authors => true, :author_logs => true}
+ExampleDBDataTables = [:authors, :author_logs, :configurations]
+ExampleDBSeqenceReset = {:authors => true, :author_logs => true, :configurations => true}
 ExampleDBData = {}
 ExampleDBData[:authors] = [
   {:id => 1, :code => 'admin', :name => '管理人', :mailto => 'admin@foobar.biz', },
@@ -43,3 +43,12 @@ ExampleDBData[:author_logs] = [
   {:id => 9, :time => Time.local(2011, 2, 21,22, 19, 55), :host => 'unknown.host.name', :action => 'login.failed', :detail => 'code "unknown" is not found.',},
   {:id => 10, :time => Time.local(2011, 3, 23, 1, 20, 59), :host => 'ppp192-168-0-2.tokyo.org', :author_id => 3, :action => 'post.comment', :detail => 'article "サンプルアーティクル"(id: 1) comment posted(id: 1).',},
 ]
+
+ExampleDBData[:configurations] = []
+ExampleDBConfigurationData = {
+  'example' => {:foo => true, :bar => 'this is foobarbaz', :baz => [:Test, :Data]},
+}
+['example'].each do |key|
+  values = ExampleDBConfigurationData[key]
+  ExampleDBData[:configurations].push(:key => key, :values => Marshal.dump(values))
+end
