@@ -62,5 +62,11 @@ describe 'CafeBlog::Core.Configuration' do
       it { @valid_values.keys.all? {|x| subject.respond_to?("#{x}=") }.should be_true }
       it { @valid_values.all? {|k, v| subject.send(k) == (v.is_a?(Proc) ? v.call : v) }.should be_true }
     end
+
+    describe '#inspect' do
+      before { @class.instance.instance_variable_set(:@foobarbaz, '123456789') }
+      subject { @class.instance.inspect }
+      it { should == '#<%s @values=%s>' % [@class.name, @class.instance.instance_variable_get(:@values).inspect]}      
+    end
   end
 end

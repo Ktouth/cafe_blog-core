@@ -9,6 +9,12 @@ module CafeBlog
         attr_reader :key
       end
 
+      # インスタンスを人間が読める形式に変換した文字列を返す
+      # @return [String] 変換した文字列
+      def inspect
+        '#<%s @values=%s>' % [self.class.name, @values.inspect]
+      end
+
       private
 
       def initialize
