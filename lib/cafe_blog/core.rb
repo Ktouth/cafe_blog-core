@@ -49,3 +49,5 @@ require 'cafe_blog/core/model'
 Sequel::Model.plugin CafeBlog::Core::ModelHelper
 
 require 'cafe_blog/core/environment'
+require 'cafe_blog/core/configuration'
+
