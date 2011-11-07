@@ -448,7 +448,6 @@ describe 'migration: 002_create_author_logs' do
     let(:require_models) { false }
     before :all do database_demigrate(@database, 0) end
 
-    specify 'dropped authors' do @database.tables.should_not be_include(:author_logs) end
+    specify 'dropped author_logs' do @database.tables.should_not be_include(:author_logs) end
   end
 end
-
