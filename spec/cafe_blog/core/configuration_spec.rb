@@ -5,6 +5,32 @@ describe 'CafeBlog::Core::Configuration' do
   it { should be_a(Class) }
 end
 
+describe 'database table: configurations' do
+  include_context 'Environment.setup'
+  let(:require_models) { false }
+
+  before :all do
+    @valid_key = 'example'
+    @valid_values = {:foo => true, :bar => 'test', :baz => {:sample => [:foo, :bar, :baz]} }
+    @rvalid_values = Marshal.dump(@valid_values)
+    @dataset = @database[:configurations]
+    @valid_key2 = 'foobarbaz'
+  end
+
+  context ':key' do
+    it { expect { @dataset.insert(:key => nil, :values => @rvalid_values ) }.to raise_error }
+    it { expect { @dataset.insert(:key => /nil/, :values => @rvalid_values ) }.to raise_error }
+    it { expect { @dataset.insert(:key => Class, :values => @rvalid_values ) }.to raise_error }
+    it { expect { @dataset.insert(:key => @dataset.first[:key], :values => @rvalid_values ) }.to raise_error }
+  end  
+
+  context ':values' do
+    it { expect { @dataset.insert(:key => @valid_key2, :values => nil ) }.to raise_error }
+    it { expect { @dataset.insert(:key => @valid_key2, :values => /^foo|bar$/ ) }.to raise_error }
+    it { expect { @dataset.insert(:key => @valid_key2, :values => Module ) }.to raise_error }
+  end
+end
+
 module TempNamespace; end
 
 describe 'CafeBlog::Core.Configuration' do
