@@ -7,6 +7,21 @@ module CafeBlog
       class <<self
         # データベースに保持する際に使用する識別キー
         attr_reader :key
+
+        private
+  
+        def load_values
+          if r = Environment.check_instance.database[:configurations].filter(:key => self.key).first
+            r = Marshal.load(r[:values])
+          else
+            r = {}
+          end
+          r.delete_if {|k, v| !@initialize_values.include?(k) }
+          @initialize_values.each do |k, v|
+            r[k] = v.is_a?(Proc) ? v.call : v unless r.include?(k)
+          end
+          r       
+        end
       end
 
       # インスタンスを人間が読める形式に変換した文字列を返す

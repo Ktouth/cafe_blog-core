@@ -9,15 +9,24 @@ module TempNamespace; end
 
 describe 'CafeBlog::Core.Configuration' do
   include_context 'Environment.setup'
+  let(:require_models) { false }
   shared_context 'configurations reset' do
-    before :all do
+    after :all do
       database_resetdata(@database)
     end
   end
   before :all do
-    @valid_key = 'sample'
+    @valid_key = 'example'
     @valid_values = {:foo => true, :bar => 'test', :baz => proc { Hash.new } }
   end
+  def _reset_config(klass); klass.instance_variable_set(:@__instance__, nil) end
+  def _conv_values(base)
+    base.inject({}) do |r, (k, v)|
+      r[k] = v.is_a?(Proc) ? v.call : v
+      r
+    end
+  end
+
   subject { CafeBlog::Core }
   it { should respond_to(:Configuration) }
 
@@ -52,6 +61,51 @@ describe 'CafeBlog::Core.Configuration' do
     it { should_not respond_to(:new) }
     it { should respond_to(:instance) }
     it { @class.instance.should == @class.instance }
+  end
+
+  describe 'class methods' do
+    context '(.load_values)' do
+      include_context 'configurations reset'
+      before :all do
+        @class = CafeBlog::Core::Configuration(@valid_key, @valid_values)
+      end
+      before { _reset_config(@class); @result = nil }
+      subject { @class }
+      it { should_not respond_to(:load_values) }
+      it { should be_respond_to(:load_values, true) }
+
+      def _call; @class.send :load_values end
+
+      context 'valid' do
+        it { expect { @result = _call }.to change { @result }.to(ExampleDBConfigurationData[@valid_key]) }
+      end
+      context 'no record' do
+        before { @database.stub_chain(:[], :filter, :first => nil) }
+        it { expect { @result = _call }.to change { @result }.to(_conv_values(@valid_values)) }
+      end
+      context 'included invalid keys' do
+        before do
+          @values = Marshal.dump(ExampleDBConfigurationData[@valid_key].merge(:invalid => 'this value is invalid', :test => false)) 
+          @database.stub_chain(:[], :filter, :first => {:key => @valid_key, :values => @values})
+        end
+        it { expect { @result = _call }.to change { @result }.to(ExampleDBConfigurationData[@valid_key]) }
+      end
+      context 'not found any valid keys' do
+        before do
+          @values = ExampleDBConfigurationData[@valid_key].dup
+          @values.delete(:bar)
+          @values.delete(:baz)
+          @database.stub_chain(:[], :filter, :first => {:key => @valid_key, :values => Marshal.dump(@values)})
+          @rvalues = @values.merge(:bar => @valid_values[:bar], :baz => @valid_values[:baz])
+        end
+        it { expect { @result = _call }.to change { @result }.to(_conv_values(@rvalues)) }
+      end
+      context 'not open environment' do
+        before :all do clear_environment end
+        after :all do @environment = CafeBlog::Core::Environment.setup(:database => @database, :require => false) end
+        it { expect { @result = _call }.to raise_error(CafeBlog::Core::ApplicationError) }
+      end
+    end
   end
 
   describe 'instance methods' do
