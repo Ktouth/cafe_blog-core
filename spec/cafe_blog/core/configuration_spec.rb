@@ -37,6 +37,7 @@ describe 'CafeBlog::Core.Configuration' do
   include_context 'Environment.setup'
   let(:require_models) { false }
   shared_context 'configurations reset' do
+    before { database_resetdata(@database) }
     after :all do
       database_resetdata(@database)
     end
@@ -92,10 +93,10 @@ describe 'CafeBlog::Core.Configuration' do
   describe 'class methods' do
     context '(.load_values)' do
       include_context 'configurations reset'
-      before :all do
+      before do
         @class = CafeBlog::Core::Configuration(@valid_key, @valid_values)
+        @result = nil
       end
-      before { _reset_config(@class); @result = nil }
       subject { @class }
       it { should_not respond_to(:load_values) }
       it { should be_respond_to(:load_values, true) }
@@ -130,6 +131,74 @@ describe 'CafeBlog::Core.Configuration' do
         before :all do clear_environment end
         after :all do @environment = CafeBlog::Core::Environment.setup(:database => @database, :require => false) end
         it { expect { @result = _call }.to raise_error(CafeBlog::Core::ApplicationError) }
+      end
+    end
+
+    context '(.store_values)' do
+      include_context 'configurations reset'
+      before do
+        @class = CafeBlog::Core::Configuration(@valid_key, @valid_values)
+        @result = nil
+        @dataset = @database[:configurations].filter(:key => @valid_key)
+        @stored_values = ExampleDBConfigurationData[@valid_key].dup
+        @stored_values[:baz] = [:Test, :Value, :Stored]
+        @stored_values[:bar] = 'store check'
+      end
+      subject { @class }
+      it { should_not respond_to(:store_values) }
+      it { should be_respond_to(:store_values, true) }
+
+      def _call
+        @class.instance.baz = [:Test, :Value, :Stored]
+        @class.instance.bar = 'store check'
+        @class.send :store_values
+      end
+      def _values; (r = @dataset.first) ? Marshal.load(r[:values]) : nil end
+
+      context 'valid' do
+        it { expect { _call }.to change { _values }.to(@stored_values) }
+      end
+      context 'no record' do
+        before do
+          @stored_values = @valid_values.dup
+          @stored_values[:baz] = [:Test, :Value, :Stored]
+          @stored_values[:bar] = 'store check'
+
+          @database.stub_chain(:[], :filter, :first => nil)
+          @class.instance
+
+          tmp = @database[:configurations].filter(:key => @valid_key)
+          @database.stub_chain(:[], :filter => tmp)
+          tmp.should_receive(:empty?).and_return { true }
+          @database.stub_chain(:[], :insert).with(an_instance_of(Hash)) do |hash|
+            hash[:key].should == @valid_key
+            begin
+              @dataset.insert(hash)
+            rescue
+              @dataset.filter(:key => @valid_key).update(:values => hash[:values])
+            end
+          end
+        end
+        it { expect { _call }.to change { _values }.to(@stored_values) }
+      end
+      context 'included invalid keys' do
+        before do
+          @class.instance.instance_variable_get(:@values)[:invalid] = 'this is invalid value'
+        end
+        it { expect { _call }.to change { _values }.to(@stored_values) }
+      end
+      context 'not found any valid keys' do
+        before do
+          h = @class.instance.instance_variable_get(:@values)
+          h.delete(:foo)
+          @stored_values[:foo] = @valid_values[:foo]
+        end
+        it { expect { _call }.to change { _values }.to(@stored_values) }
+      end
+      context 'not open environment' do
+        before :all do clear_environment end
+        after :all do @environment = CafeBlog::Core::Environment.setup(:database => @database, :require => false) end
+        it { expect { _call }.to raise_error(CafeBlog::Core::ApplicationError) }
       end
     end
   end

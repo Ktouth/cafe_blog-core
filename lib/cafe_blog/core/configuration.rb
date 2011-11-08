@@ -16,12 +16,27 @@ module CafeBlog
           else
             r = {}
           end
-          r.delete_if {|k, v| !@initialize_values.include?(k) }
-          @initialize_values.each do |k, v|
-            r[k] = v.is_a?(Proc) ? v.call : v unless r.include?(k)
-          end
-          r       
+          sync_values(r)
         end
+
+        def store_values
+          db = Environment.check_instance.database
+          values = Marshal.dump(sync_values(instance.instance_variable_get(:@values).dup))
+          if db[:configurations].filter(:key => self.key).empty?
+            db[:configurations].insert(:key => self.key, :values => values)
+          else
+            db[:configurations].filter(:key => self.key).update(:values => values)
+          end
+          self
+        end
+
+        def sync_values(hash)
+          hash.delete_if {|k, v| !@initialize_values.include?(k) }
+          @initialize_values.each do |k, v|
+            hash[k] = v.is_a?(Proc) ? v.call : v unless hash.include?(k)
+          end
+          hash
+        end        
       end
 
       # インスタンスを人間が読める形式に変換した文字列を返す
