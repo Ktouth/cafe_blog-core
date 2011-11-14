@@ -201,11 +201,24 @@ describe 'CafeBlog::Core.Configuration' do
         it { expect { _call }.to raise_error(CafeBlog::Core::ApplicationError) }
       end
     end
+
+    context '.instance' do
+      before { @class = CafeBlog::Core::Configuration(@valid_key, @valid_values) }
+      it { expect {;}.to_not change { @class.instance } }
+      it { @class.instance.should be_a(@class) }
+      context 'load database' do
+        before do
+          @values = @class.send :load_values
+          @class.should_receive(:load_values).with(no_args).and_return { @values }
+        end
+        it { expect { @values = @class.instance.instance_variable_get(:@values) }.to_not change { @values } }
+      end
+    end
   end
 
   describe 'instance methods' do
     before :all do
-      @class = TempNamespace.const_set('ExampleConfig', CafeBlog::Core::Configuration(@valid_key, @valid_values))
+      @class = TempNamespace.const_set('ExampleConfig', CafeBlog::Core::Configuration('valid_key', @valid_values))
     end
     after :all do
       TempNamespace.module_eval { remove_const('ExampleConfig') }

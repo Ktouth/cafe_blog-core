@@ -6,6 +6,7 @@ module CafeBlog
     class Configuration
       class <<self
         # データベースに保持する際に使用する識別キー
+        # @return [String] 識別キー
         attr_reader :key
 
         private
@@ -48,15 +49,7 @@ module CafeBlog
       private
 
       def initialize
-        @values = self.class.instance_variable_get(:@initialize_values).inject({}) do |r, (k, v)|
-          case v
-          when Proc
-            r[k] = v.call
-          else
-            r[k] = v
-          end
-          r
-        end
+        @values = self.class.send :load_values
       end      
     end
 
