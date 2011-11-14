@@ -46,10 +46,19 @@ module CafeBlog
         '#<%s @values=%s>' % [self.class.name, @values.inspect]
       end
 
+      # このインスタンスの保持値が変更されたかどうかを返す
+      # @return [Boolean] 変更されている時+true+を返す
+      def modified?; @modified_p end
+
+      # このインスタンスの保持値が変更されたことを明示的に指定する
+      # @return [Configuration] このインスタンス自身を返す
+      def modified!; @modified_p = true; self end
+
       private
 
       def initialize
         @values = self.class.send :load_values
+        @modified_p = false
       end      
     end
 
@@ -67,8 +76,8 @@ module CafeBlog
         c.instance_variable_set(:@key, key)
         c.instance_variable_set(:@initialize_values, values)
         values.each do |sym, val|
-          c.module_eval("def #{sym}; @values[#{sym.inspect}] end")
-          c.module_eval("def #{sym}=(value); @values[#{sym.inspect}] = value end")
+          c.module_eval("def #{sym}; @values[#{sym.inspect}] end", __FILE__, __LINE__)
+          c.module_eval("def #{sym}=(value); unless @values[#{sym.inspect}] == value then; @values[#{sym.inspect}] = value; @modified_p = true end; end", __FILE__, __LINE__)
         end
         c.module_eval { include Singleton }
       end

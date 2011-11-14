@@ -236,6 +236,34 @@ describe 'CafeBlog::Core.Configuration' do
       subject { @class.instance.inspect }
       it { should == '#<%s @values=%s>' % [@class.name, @class.instance.instance_variable_get(:@values).inspect]}      
     end
+
+    describe '#modified? / #modified!' do
+      it { should respond_to(:modified?) }
+      it { should respond_to(:modified!) }
+
+      shared_context('modified specs') do
+        let(:modified_key) { @valid_key }
+        before { @class = CafeBlog::Core::Configuration(modified_key, @valid_values) }
+        subject { @class.instance }
+
+        it { subject.modified?.should be_false }
+        it { expect { subject.modified! }.to change { subject.modified? }.from(false).to(true) }
+        it { expect { subject.foo = false }.to change { subject.modified? }.from(false).to(true) }
+        it { expect { subject.bar = subject.bar }.to_not change { subject.modified? } }
+        context do
+          before { subject.modified! }
+          it { expect { subject.modified! }.to_not change { subject.modified? }.from(true) }
+          it { expect { subject.foo = false }.to_not change { subject.modified? }.from(true) }
+          it { expect { subject.bar = subject.bar }.to_not change { subject.modified? } }
+        end
+      end
+      include_context('modified specs')
+
+      context '(not exist DB-record)' do
+        include_context('modified specs')
+        let(:modified_key) { 'no_exist_key' }
+      end
+    end
   end
 end
 
