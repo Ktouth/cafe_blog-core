@@ -14,8 +14,8 @@ GEM
       rake
     not-naughty (0.6.2)
       rubytree (>= 0.5.2)
-    rake (0.9.2)
-    rcov (0.9.10)
+    rake (0.9.2.2)
+    rcov (0.9.11)
     rspec (2.6.0)
       rspec-core (~> 2.6.0)
       rspec-expectations (~> 2.6.0)
@@ -25,10 +25,10 @@ GEM
       diff-lcs (~> 1.1.2)
     rspec-mocks (2.6.0)
     rubytree (0.8.1)
-    sequel (3.26.0)
+    sequel (3.29.0)
     sequel_notnaughty (0.6.2)
       not-naughty (= 0.6.2)
-    yard (0.7.2)
+    yard (0.7.3)
 
 PLATFORMS
   x86-mingw32
