@@ -3,6 +3,10 @@ require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
 describe 'CafeBlog::Core::Configuration' do
   subject { CafeBlog::Core::Configuration }
   it { should be_a(Class) }
+  it { should < NotNaughty::InstanceMethods }
+  it { should respond_to(:validates) }
+  it { should respond_to(:validates_presence_of) }
+  it { should respond_to(:validator) }
 end
 
 describe 'database table: configurations' do

@@ -1,9 +1,11 @@
 require 'singleton'
+require 'not_naughty'
 
 module CafeBlog
   module Core
     # 環境情報保持クラス
     class Configuration
+      extend NotNaughty
       class <<self
         # データベースに保持する際に使用する識別キー
         # @return [String] 識別キー
