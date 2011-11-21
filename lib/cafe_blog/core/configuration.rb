@@ -56,6 +56,22 @@ module CafeBlog
       # @return [Configuration] このインスタンス自身を返す
       def modified!; @modified_p = true; self end
 
+      # このインスタンスの内容を保存する
+      # @note 保持する対象の属性値が変更されていて、検証に成功した時のみ保存処理を行う
+      # @return [Configuration] このインスタンス自身を返す
+      # @raise [ModelOperationError] データ検証に失敗した
+      def save
+        if modified?
+          unless valid?
+            fm = errors.full_messages
+            raise ModelOperationError, '検証に失敗しました(%d failed): %s%s' % [fm.size, fm.first, fm.size > 1 ? ' ...' : '']
+          end
+          self.class.send(:store_values)
+          @modified_p = false
+        end
+        self
+      end
+
       private
 
       def initialize

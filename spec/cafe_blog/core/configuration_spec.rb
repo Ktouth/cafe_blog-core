@@ -268,6 +268,41 @@ describe 'CafeBlog::Core.Configuration' do
         let(:modified_key) { 'no_exist_key' }
       end
     end
+
+    describe '#save' do
+      it { should respond_to(:save) }
+
+      context '(not receive when not modified)' do
+        before do
+          @class.instance.should_receive(:modified?).with(no_args).and_return { false }
+          @class.instance.should_not_receive(:valid?)
+          @class.should_not_receive(:store_values)
+        end
+        it { expect { @class.instance.save }.to_not change { @class.instance } }
+        it { @class.instance.save.should == @class.instance }
+      end
+      context '(raise error when failed validates)' do
+        before do
+          @class.instance.should_receive(:modified?).with(no_args).and_return { true }
+          @class.instance.should_receive(:valid?).with(no_args).and_return { false }
+          @class.should_not_receive(:store_values)
+        end
+        it { expect { @class.instance.save }.to raise_error(CafeBlog::Core::ModelOperationError) }
+      end
+
+      context '(receive when modified and successed validates)' do
+        before do
+          @class.instance.tap do |t|
+            t.foo = !t.foo
+            t.modified?.should be_true
+            t.valid?.should be_true
+            @class.should_receive(:store_values).with(no_args).and_return { @class }
+          end
+        end
+        it { expect { @class.instance.save }.to change { @class.instance.modified? }.from(true).to(false) }
+        it { @class.instance.save.should == @class.instance }
+      end
+    end
   end
 end
 
