@@ -8,10 +8,10 @@ module CafeBlog
       # @attr [Integer] id 筆者を識別する番号。新規作成時のみ設定可能
       # @attr [String] code 筆者を識別するコード名。新規作成時のみ設定可能。ログイン時のアカウント名および筆者による絞り込み時のディレクトリ名としても使用
       #   筆者コードは3字以上16字以内で先頭が英子文字で始まる英小文字と数字およびアンダーバーのみで構成されているもののみを受け付ける
-      # @attr [String] name 筆者名。一意的な三文字以上のもののみを受け付ける
+      # @attr [String] name 筆者名。一意的なもののみを受け付ける
       # @attr [String] mailto 筆者への連絡用メールアドレス。連絡不要の場合は +nil+ を受け付ける
       # @attr_reader [String] crypted_password 暗号化された筆者のログイン用パスワード
-      # @attr_reader [String] password_salt パスワード紹介用のsaltコード
+      # @attr_reader [String] password_salt パスワード照会用のsaltコード
       # @attr [String] password パスワード変更時に新規パスワードを設定する。通常時および保存完了後は+nil+を返す
       # @attr [String] password_confirmation パスワード変更時に新規パスワード(確認のため)を設定する。通常時および保存完了後は+nil+を返す
       # @attr [TrueClass] loginable 認証機能においてログイン可能かどうかを取得または設定する。規定値は+true+
@@ -23,7 +23,7 @@ module CafeBlog
         alt_column_accessors :password, :password_confirmation
 
         validates(:code) { presence and uniqueness and length(:minimum => 3, :maximum => 16) and format(:with => /^(?![_\d])[a-z\d_]+$/) }
-        validates(:name) { presence and uniqueness and length(:minimum => 3) and format(:with => /^.{3,}$/u) }
+        validates(:name) { presence and uniqueness }
         validates(:mailto) { format(:with => :email, :allow_nil => true) }
         validates(:crypted_password) { length(:is => 40, :allow_nil => true) and format(:with => /^[\da-f]{40}$/, :allow_nil => true) }
         validates(:password_salt) { length(:is => 40, :allow_nil => true) and format(:with => /^[\da-f]{40}$/, :allow_nil => true) }

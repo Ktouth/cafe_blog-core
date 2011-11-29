@@ -189,8 +189,8 @@ describe 'CafeBlog::Core::Model::Author' do
       it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:name => nil)) }.to raise_error }
       it { expect { CafeBlog::Core::Model::Author.insert(valid_args(:name => @admin.name)) }.to raise_error }
       it { expect { @author.name = ''; @author.save }.to raise_error }
-      it { expect { @author.name = 'ab'; @author.save }.to raise_error }
-      it { expect { @author.name = '短い'; @author.save }.to raise_error }
+      it { expect { @author.name = 'ab'; @author.save }.to_not raise_error }
+      it { expect { @author.name = '短い'; @author.save }.to_not raise_error }
     end
 
     context '#mailto' do
