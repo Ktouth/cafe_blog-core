@@ -7,6 +7,7 @@ module CafeBlog
       # @attr [Integer] id 筆者を識別する番号。新規作成時に自動設定される
       class Tag < Core::Model(:tags)
         restrict_primary_key
+        set_operation_freeze_columns :id
       end
     end
   end
