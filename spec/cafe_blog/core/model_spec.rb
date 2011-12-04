@@ -1,5 +1,9 @@
 require File.expand_path(File.dirname(__FILE__) + '/../../spec_helper')
-
+module ModelHelperSpecHelper
+  def self.remove_all_const
+    constants.each {|x| remove_const(x) }
+  end
+end
 describe 'CafeBlog::Core::ModelHelper' do
   include_context 'Environment.setup'
   let(:require_models) { false }
@@ -14,6 +18,11 @@ describe 'CafeBlog::Core::ModelHelper' do
       String :subject
       Time :time, :null => false
       foreign_key :barbaz_key, :barbaz, :null => true, :default => nil
+    end
+    @database.create_table! :b2f do
+      foreign_key :barbaz_id, :barbaz, :null => true, :default => nil
+      foreign_key :foobar_id, :foobar, :null => true, :default => nil
+      index [:barbaz_id, :foobar_id]
     end
     @names = [
       {:name => 'admin'},
@@ -31,23 +40,37 @@ describe 'CafeBlog::Core::ModelHelper' do
       {:count => 6, :subject => '日本語テキスト', :time => Time.now + 11, :barbaz_key => 1},
     ]
     @database[:foobar].insert_multiple(@records)
+    @links = [
+      {:barbaz_id => 1, :foobar_id => 1},
+      {:barbaz_id => 2, :foobar_id => 5},
+      {:barbaz_id => 1, :foobar_id => 2},
+      {:barbaz_id => 1, :foobar_id => 3},
+      {:barbaz_id => 3, :foobar_id => 1},
+      {:barbaz_id => 2, :foobar_id => 1},
+    ]
+    @database[:b2f].insert_multiple(@links)
   end
   after :all do
+    @database.drop_table :b2f rescue nil
     @database.drop_table :foobar rescue nil
     @database.drop_table :barbaz rescue nil
   end
   
   shared_context 'sample model' do
     before do
-      @barbaz_model = Class.new(CafeBlog::Core::Model(:barbaz))
-      @model = Class.new(CafeBlog::Core::Model(:foobar))
+      @barbaz_model = ModelHelperSpecHelper::Barbaz = Class.new(CafeBlog::Core::Model(:barbaz))
+      @model = ModelHelperSpecHelper::Foobar = Class.new(CafeBlog::Core::Model(:foobar))
       @model.class_eval do
         set_restricted_columns :time
         many_to_one :barbaz, :key => :barbaz_key
       end
+      @barbaz_model.one_to_many :foobar, :key => :barbaz_key, :class => @model
+      @barbaz_model.one_to_one :foobar_oo, :key => :barbaz_key, :class => @model
+      @barbaz_model.many_to_many :links, :class => @model, :left_key => :barbaz_id, :right_key => :foobar_id, :join_table => :b2f
     end
     after do
       Sequel::Model::ANONYMOUS_MODEL_CLASSES.delete_if {|k,v| v == @model.superclass or v == @barbaz_model.superclass }
+      ModelHelperSpecHelper.remove_all_const
     end
   end
 
@@ -136,6 +159,9 @@ describe 'CafeBlog::Core::ModelHelper' do
         specify 'not symbol' do expect { @model.set_operation_freeze_columns /regexp/ }.to raise_error(ArgumentError) end
         specify 'not symbol' do expect { @model.set_operation_freeze_columns nil }.to raise_error(ArgumentError) end
         specify 'not symbol' do expect { @model.set_operation_freeze_columns false }.to raise_error(ArgumentError) end
+        specify 'one_to_one association' do expect { @barbaz_model.set_operation_freeze_columns :foobar_oo }.to raise_error(ArgumentError) end
+        specify 'one_to_many association' do expect { @barbaz_model.set_operation_freeze_columns :foobar }.to raise_error(ArgumentError) end
+        specify 'many_to_many association' do expect { @barbaz_model.set_operation_freeze_columns :links }.to raise_error(ArgumentError) end
       end
     end
 
