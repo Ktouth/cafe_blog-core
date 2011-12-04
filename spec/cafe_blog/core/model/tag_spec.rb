@@ -48,7 +48,7 @@ describe 'CafeBlog::Core::Model::Tag' do
   describe 'instance methods' do
     before do
       @tag = @model.new
-      @first, @second, @third = @model[1], @model[9], @model[13]
+      @first, @second, @third = @model[1], @model[9], @model[12]
     end
     def args_set(*excepts)
       valid_args.tap {|args| excepts.each {|x| args.delete(x) } }.each do |key, value|
@@ -61,6 +61,11 @@ describe 'CafeBlog::Core::Model::Tag' do
     it { should respond_to(:id) }
     it { should respond_to(:name) }
     it { should respond_to(:code) }
+    it { should be_respond_to(:group) }
+    it { should be_respond_to(:group_id) }
+    it { expect { subject.group_id }.to raise_error(NoMethodError) }
+    it { should be_respond_to(:group_id=) }
+    it { expect { subject.group_id = 2 }.to raise_error(NoMethodError) }
 
     context '#id' do
       include_context 'tags reset'
@@ -134,6 +139,54 @@ describe 'CafeBlog::Core::Model::Tag' do
       it { expect { @tag.code = 'alter_first' }.to change { @tag.to_code }.from('tag0000').to('alter_first') }
       it { expect { @tag.save; @tag_code = 'tag%04d' % @tag.id }.to change { @tag.to_code }.from('tag0000').to(@tag_code) }
       it { expect { @tag.code = 'alter_first'; @tag.save }.to change { [@tag.new?, @tag.to_code] }.from([true, 'tag0000']).to([false, 'alter_first']) }
+    end
+
+    context '#group' do
+      before :all do
+        @_last_group_id = @model.order_by(:id.desc).first.id
+      end
+      after :all do
+        @model.filter('id > ?', @_last_group_id).destroy
+        reset_autoincrement_count(@database, :tags, @_last_group_id)
+      end
+      include_context 'tags reset'
+      before do
+        @tag_last = @model.order_by(:id.desc).first.id
+        args_set(:group)
+      end
+      def _valid_args(group_id = nil); valid_args(:group_id => group_id) end
+      subject { @tag.group }
+
+      it { should be_nil }
+      it { @second.group.should be_a(@model) }
+      it { expect { @tag.group = @first }.to change { @tag.group }.to(@first) }
+      it { expect { @tag.group = @first; @tag.save }.to_not raise_error }
+      it { expect { @model.create(_valid_args(@first.id)) }.to_not raise_error }
+      it { expect { @model.create(_valid_args(nil)) }.to_not raise_error }
+      it { expect { @tag_last = @model.insert(valid_args(:group_id => nil)) }.to_not raise_error }
+      it { expect { @tag_last = @model.insert(valid_args(:group_id => nil)) }.to change { @tag_last }.by(1) }
+      it { expect { @tag_last = @model.insert(valid_args(:group_id => @third.id)) }.to_not raise_error }
+      it { expect { @tag_last = @model.insert(valid_args(:group_id => @third.id)) }.to change { @tag_last }.by(1) }
+      it { expect { @tag.group = nil; @tag.save }.to_not raise_error }
+      it { expect { @tag.group = nil; @tag.save }.to change { @tag.id.nil? }.to(false) }
+      it { expect { @tag.group = 12354648 }.to raise_error }
+      it { expect { @tag.group = 'new_user001' }.to raise_error }
+      it { expect { @tag.group = @model.new(:code => 'new_tag001', :name => '新規タグタグ') }.to raise_error(Sequel::Error) }
+      it { expect { @second.group = @third }.to raise_error(CafeBlog::Core::ModelOperationError) }
+
+      context '(foreign key on delete)' do
+        before do
+          @dummy = @model.create(:code => 'new_tag003', :name => 'テストタグタグタグ')
+          @dummy_id = @dummy.id
+          @tag.group = @dummy
+          @tag.save
+        end
+        after { @dummy.destroy rescue nil }
+        it { expect { @dummy.destroy }.to_not raise_error }
+        it { expect { @dummy.destroy rescue nil }.to_not change { @tag.exists? } }
+        it { expect { @dummy.destroy rescue nil; @tag.reload }.to change { @tag.group(true) }.to(nil) }
+        it { expect { @dummy.destroy rescue nil; @tag.reload }.to change { @tag.instance_eval { group_id } }.to(nil) }
+      end
     end
   end
 end
