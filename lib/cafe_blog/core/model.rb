@@ -66,9 +66,33 @@ module CafeBlog
           end
         end
 
+        # モデルレコードのforeign_keyに該当するカラムのプロパティメソッドをプロテクトメソッドにする。
+        # このメソッドで指定出来るカラムはmany_to_oneで関連として指定されたカラムのみで、それ以外のカラムは例外となる。
+        # @param [Array] columns プロテクトメソッドにしたいキーを持つカラム。指定しない場合、該当する全ての関連が対象となる。
+        # @raise [ArgumentError] +many_to_one+以外のカラム名もしくは+Symbol+以外のカラム名を指定した
+        def protected_foreign_keys(*columns)
+          ary = association_reflections.inject({}) do |r, (k, v)|
+            r[k] = v[:key] if v[:type] == :many_to_one
+            r
+          end
+          unless columns.empty?
+            raise ArgumentError, '%sに関連カラム名として不適切なものが含まれています' % columns.inspect unless columns.all? {|x| x.is_a?(Symbol) }
+            raise ArgumentError, '%sに関連カラム名として存在しないものが含まれています' % columns.inspect unless columns.all? {|x| ary[x] }
+          else
+            columns.concat ary.keys
+          end
+          columns.map! {|x| [ary[x].to_s, "#{ary[x]}="] }.flatten!
+          _set_protected_method(*columns)
+        end
+
         private
 
         def get_model_bases; ancestors[0 ... ancestors.index(Sequel::Model)] end
+        def _set_protected_method(*methods)
+          get_model_bases.each do |c|
+            c.class_eval { protected *(c.public_instance_methods(false) & methods) }
+          end
+        end
       end
     end
   end

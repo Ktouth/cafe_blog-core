@@ -18,6 +18,8 @@ describe 'CafeBlog::Core::ModelHelper' do
       String :subject
       Time :time, :null => false
       foreign_key :barbaz_key, :barbaz, :null => true, :default => nil
+      foreign_key :barbaz_key2, :barbaz, :null => true, :default => nil
+      foreign_key :barbaz_key3, :barbaz, :null => true, :default => nil
     end
     @database.create_table! :b2f do
       foreign_key :barbaz_id, :barbaz, :null => true, :default => nil
@@ -92,10 +94,12 @@ describe 'CafeBlog::Core::ModelHelper' do
   describe 'ClassMethods' do
     include_context 'sample model'
     subject { @model }
+    specify { [@model.primary_key, @model.restricted_columns].flatten.should == [:ident, :time] }
+
     it { should respond_to(:set_operation_freeze_columns) }
     it { should respond_to(:remove_column_setters) }
     it { should respond_to(:alt_column_accessors) }
-    it { [@model.primary_key, @model.restricted_columns].flatten.should == [:ident, :time] }
+    it { should respond_to(:protected_foreign_keys) }
 
     describe '#set_operation_freeze_columns' do
       before :all do @error = CafeBlog::Core::ModelOperationError end
@@ -233,6 +237,77 @@ describe 'CafeBlog::Core::ModelHelper' do
         it { expect { @model.alt_column_accessors :alter, :context; @item.context = :test }.to change { @item.modified? }.to(true) }
         it { expect { @model.alt_column_accessors :alter, :context; @item.context = 123456 }.to_not change { @item.changed_columns } }
         it { expect { @model.alt_column_accessors :alter, :context; @item.context = /regexp/ }.to_not change { @item.values.include?(:alter) } }
+      end
+    end
+
+    describe '#protected_foreign_keys' do
+      before :all do @error = NoMethodError end
+      before do
+        @model.many_to_one :bar, :key => :barbaz_key2
+        @model.many_to_one :bbbbb, :key => :barbaz_key3
+
+        @exist = @model[3]; @new_time = @exist.time + 9999
+        @barbaz = @barbaz_model.order_by(:key).first
+      end
+      context '(called no params)' do
+        before { @model.protected_foreign_keys }
+        it { expect { @model.new(:ident => 11, :count => 511, :subject => 'newItem', :time => Time.now - 511111) }.to_not raise_error(@error) }
+        it { expect { @model.new.barbaz }.to_not raise_error(@error) }
+        it { expect { @model.new.barbaz = @barbaz }.to_not raise_error(@error) }
+        it { expect { @model.new.bar }.to_not raise_error(@error) }
+        it { expect { @model.new.bar = @barbaz }.to_not raise_error(@error) }
+        it { expect { @model.new.bbbbb }.to_not raise_error(@error) }
+        it { expect { @model.new.bbbbb = @barbaz }.to_not raise_error(@error) }
+        it { expect { @model.new.barbaz_key }.to raise_error(@error) }
+        it { expect { @model.new.barbaz_key = @barbaz.key }.to raise_error(@error) }
+        it { expect { @model.new.barbaz_key2 }.to raise_error(@error) }
+        it { expect { @model.new.barbaz_key2 = @barbaz.key }.to raise_error(@error) }
+        it { expect { @model.new.barbaz_key3 }.to raise_error(@error) }
+        it { expect { @model.new.barbaz_key3 = @barbaz.key }.to raise_error(@error) }
+      end
+      context '(called 1 params)' do
+        before { @model.protected_foreign_keys :barbaz }
+        it { expect { @model.new(:ident => 11, :count => 511, :subject => 'newItem', :time => Time.now - 511111) }.to_not raise_error(@error) }
+        it { expect { @model.new.barbaz }.to_not raise_error(@error) }
+        it { expect { @model.new.barbaz = @barbaz }.to_not raise_error(@error) }
+        it { expect { @model.new.bar }.to_not raise_error(@error) }
+        it { expect { @model.new.bar = @barbaz }.to_not raise_error(@error) }
+        it { expect { @model.new.bbbbb }.to_not raise_error(@error) }
+        it { expect { @model.new.bbbbb = @barbaz }.to_not raise_error(@error) }
+        it { expect { @model.new.barbaz_key }.to raise_error(@error) }
+        it { expect { @model.new.barbaz_key = @barbaz.key }.to raise_error(@error) }
+        it { expect { @model.new.barbaz_key2 }.to_not raise_error(@error) }
+        it { expect { @model.new.barbaz_key2 = @barbaz.key }.to_not raise_error(@error) }
+        it { expect { @model.new.barbaz_key3 }.to_not raise_error(@error) }
+        it { expect { @model.new.barbaz_key3 = @barbaz.key }.to_not raise_error(@error) }
+      end
+      context '(called 0+2 params)' do
+        before { @model.protected_foreign_keys; @model.protected_foreign_keys :bbbbb, :barbaz }
+        it { expect { @model.new(:ident => 11, :count => 511, :subject => 'newItem', :time => Time.now - 511111) }.to_not raise_error(@error) }
+        it { expect { @model.new.barbaz }.to_not raise_error(@error) }
+        it { expect { @model.new.barbaz = @barbaz }.to_not raise_error(@error) }
+        it { expect { @model.new.bar }.to_not raise_error(@error) }
+        it { expect { @model.new.bar = @barbaz }.to_not raise_error(@error) }
+        it { expect { @model.new.bbbbb }.to_not raise_error(@error) }
+        it { expect { @model.new.bbbbb = @barbaz }.to_not raise_error(@error) }
+        it { expect { @model.new.barbaz_key }.to raise_error(@error) }
+        it { expect { @model.new.barbaz_key = @barbaz.key }.to raise_error(@error) }
+        it { expect { @model.new.barbaz_key2 }.to raise_error(@error) }
+        it { expect { @model.new.barbaz_key2 = @barbaz.key }.to raise_error(@error) }
+        it { expect { @model.new.barbaz_key3 }.to raise_error(@error) }
+        it { expect { @model.new.barbaz_key3 = @barbaz.key }.to raise_error(@error) }
+      end
+      context 'invalid params' do
+        specify 'no column name' do expect { @model.protected_foreign_keys :no_name }.to raise_error(ArgumentError) end
+        specify 'no association name' do expect { @model.protected_foreign_keys :subject }.to raise_error(ArgumentError) end
+        specify 'not symbol' do expect { @model.protected_foreign_keys 'ident' }.to raise_error(ArgumentError) end
+        specify 'not symbol' do expect { @model.protected_foreign_keys 123456 }.to raise_error(ArgumentError) end
+        specify 'not symbol' do expect { @model.protected_foreign_keys /regexp/ }.to raise_error(ArgumentError) end
+        specify 'not symbol' do expect { @model.protected_foreign_keys nil }.to raise_error(ArgumentError) end
+        specify 'not symbol' do expect { @model.protected_foreign_keys false }.to raise_error(ArgumentError) end
+        specify 'one_to_one association' do expect { @barbaz_model.protected_foreign_keys :foobar_oo }.to raise_error(ArgumentError) end
+        specify 'one_to_many association' do expect { @barbaz_model.protected_foreign_keys :foobar }.to raise_error(ArgumentError) end
+        specify 'many_to_many association' do expect { @barbaz_model.protected_foreign_keys :links }.to raise_error(ArgumentError) end
       end
     end
   end
