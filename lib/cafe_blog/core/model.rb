@@ -25,13 +25,8 @@ module CafeBlog
           columns.each do |sym|
             class_eval("def #{sym}=(value); new? ? super(value) : (raise ModelOperationError, '#{sym} #{msg}') end", __FILE__, __LINE__)
           end
-          associations.each do |sym|
-            getter = association_reflections[sym][:key].to_s
-            get_model_bases.find_all {|x| x.instance_methods(false).include?(getter) }.each do |c|
-              c.class_eval { protected getter }
-            end
-            class_eval { protected "#{getter}=" }
-          end
+          associations.map! {|x| m = association_reflections[x][:key].to_s; [m, "#{m}="] }.flatten!
+          _set_protected_method(*associations)
         end
 
         # カラムの変更用メソッドを削除する、
@@ -43,11 +38,9 @@ module CafeBlog
           raise ArgumentError, '%sにカラム名として不適切なものが含まれています' % columns.inspect unless columns.all? {|x| x.is_a?(Symbol) }
           raise ArgumentError, '%sにカラム名として存在しないものが含まれています' % columns.inspect unless columns.all? {|x| self.columns.include?(x) }
 
-          columns.uniq.each do |sym|
-            meth = "#{sym}="
-            get_model_bases.find_all {|x| x.instance_methods(false).include?(meth) }.each do |c|
-              c.class_eval { remove_method(meth) }
-            end
+          columns.map! {|x| "#{x}=" }
+          get_model_bases.each do |c|
+            c.class_eval { remove_method *(instance_methods(false) & columns) }
           end
         end
 
