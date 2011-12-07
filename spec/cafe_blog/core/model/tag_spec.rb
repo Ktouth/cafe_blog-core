@@ -4,6 +4,7 @@ describe 'CafeBlog::Core::Model::Tag' do
   include_context 'Environment.setup'
   before :all do
     @model = CafeBlog::Core::Model::Tag
+    @error = CafeBlog::Core::ModelOperationError
   end
   shared_context 'tags reset' do
     before :all do
@@ -189,6 +190,8 @@ describe 'CafeBlog::Core::Model::Tag' do
         it { expect { @dummy.destroy rescue nil; @tag.reload }.to change { @tag.instance_eval { group_id } }.to(nil) }
       end
     end
+
+    it { expect { @first.destroy }.to raise_error(@error) }
   end
 end
 
@@ -197,8 +200,16 @@ describe 'migration: 004_create_tags' do
     include_context 'Environment.setup'
     let(:database_migration_params) { {:target => 4} }
     let(:require_models) { false }
+    let(:database_table_excepts) { [:tags] }
     specify 'version is 1' do @database[:schema_info].first[:version].should == 4 end
     specify 'created Tags' do @database.tables.should be_include(:tags) end
+    context 'no_group tag is exist' do
+      before { @first = @database[:tags].filter(:id => 1).first }
+      subject { @first }
+      it { should_not be_nil }
+      it { subject[:code].should == 'no_group' }
+      it { subject[:name].should == '未分類' }
+    end
   end
   context 'migration.down' do
     include_context 'Environment.setup'

@@ -9,6 +9,7 @@ module CafeBlog
       # @attr [String] code タグを識別するコード名。省略可。 #to_code を参照。タグによる絞り込みやURLなどで使用
       # @attr [Tag] group タグが所属する大分類タグ。大分類タグ自身の時は+nil+となる。
       #   タグコードは3字以上16字以内で先頭が英子文字で始まる英小文字と数字およびアンダーバーのみで構成されているもののみを受け付ける
+      # @note 未分類タグ[id=1]は特殊扱いのタグであり、削除不可能。
       class Tag < Core::Model(:tags)
         many_to_one :group, :class => self
 
@@ -24,6 +25,13 @@ module CafeBlog
         # @return [String] タグコード
         def to_code
           code || ('tag%04d' % (id || 0))
+        end
+
+        private
+
+        def around_destroy
+          raise ModelOperationError, '未分類タググループは削除出来ません' if self.id == 1
+          super
         end
       end
     end
