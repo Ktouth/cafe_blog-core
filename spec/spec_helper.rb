@@ -28,6 +28,7 @@ MigrationDirectory = File.expand_path('../../resource/migration', __FILE__)
 shared_context 'Environment.setup' do
   let(:database_migration_params) { {} }
   let(:require_models) { true }
+  let(:database_table_excepts) { [] }
   before :all do
     clear_environment
 
@@ -35,7 +36,7 @@ shared_context 'Environment.setup' do
     require 'sequel/extensions/migration'
     Sequel::Migrator.run(@database, MigrationDirectory, database_migration_params)
     
-    database_resetdata(@database)
+    database_resetdata(@database, *database_table_excepts)
 
     @environment = CafeBlog::Core::Environment.setup(:database => @database, :require => require_models)
   end
