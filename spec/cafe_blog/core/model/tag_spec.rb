@@ -172,7 +172,8 @@ describe 'CafeBlog::Core::Model::Tag' do
       it { expect { @tag.group = 12354648 }.to raise_error }
       it { expect { @tag.group = 'new_user001' }.to raise_error }
       it { expect { @tag.group = @model.new(:code => 'new_tag001', :name => '新規タグタグ') }.to raise_error(Sequel::Error) }
-      it { expect { @second.group = @third }.to raise_error(CafeBlog::Core::ModelOperationError) }
+      it { expect { @second.group = @third; @second.save }.to_not raise_error }
+      it { expect { @second.group = @first }.to change { @second.group }.to(@first) }
 
       context '(foreign key on delete)' do
         before do
